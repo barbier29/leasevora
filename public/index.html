@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Nestio</title>
+  <meta name="description" content="Nestio — Gérez vos biens immobiliers en toute simplicité." />
+
+  <!-- PWA / mobile -->
+  <meta name="theme-color" content="#0b0d12" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Nestio" />
+  <link rel="manifest" href="manifest.json" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+  <div id="app" style="display:none">
+
+    <!-- Backdrop mobile (ferme la sidebar au clic) -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <span class="brand-icon">🪹</span>
+        <span class="brand-name">Nestio</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Général</div>
+        <a class="nav-item" data-page="dashboard" href="#dashboard"> <span class="nav-icon">📊</span> Tableau de bord </a>
+        <a class="nav-item" data-page="properties" href="#properties"> <span class="nav-icon">🏘️</span> Propriétés </a>
+        <a class="nav-item" data-page="units" href="#units"> <span class="nav-icon">🚪</span> Appartements </a>
+        <div class="nav-section-label">Location</div>
+        <a class="nav-item" data-page="locataires" href="#locataires"> <span class="nav-icon">👤</span> Locataires </a>
+        <a class="nav-item" data-page="sejours" href="#sejours"> <span class="nav-icon">🛏️</span> Séjours </a>
+        <a class="nav-item" data-page="calendrier" href="#calendrier"> <span class="nav-icon">📅</span> Calendrier </a>
+        <div class="nav-section-label">Finances</div>
+        <a class="nav-item" data-page="transactions" href="#transactions"> <span class="nav-icon">💸</span> Transactions </a>
+        <a class="nav-item" data-page="caisse" href="#caisse"> <span class="nav-icon">🏦</span> Caisse </a>
+        <a class="nav-item" data-page="finance" href="#finance"> <span class="nav-icon">📈</span> Compte de Résultat </a>
+        <div class="nav-section-label">Gestion</div>
+        <a class="nav-item" data-page="travaux" href="#travaux"> <span class="nav-icon">🔧</span> Travaux </a>
+        <a class="nav-item" data-page="compteurs" href="#compteurs"> <span class="nav-icon">💡</span> Compteurs </a>
+        <a class="nav-item" data-page="categories" href="#categories"> <span class="nav-icon">🏷️</span> Catégories </a>
+        <div class="nav-section-label">Équipe</div>
+        <a class="nav-item" data-page="notes" href="#notes"> <span class="nav-icon">💬</span> Notes & Messages </a>
+        <div class="nav-section-label">Administration</div>
+        <a class="nav-item" data-page="users" href="#users"> <span class="nav-icon">👥</span> Utilisateurs </a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div id="user-badge" class="user-badge"></div>
+        <button id="logout-btn" class="btn btn-ghost btn-sm logout-btn">⏻ Déconnexion</button>
+        <div class="sidebar-footer">v3.0.0</div>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <!-- Barre supérieure mobile uniquement -->
+      <div class="mobile-topbar">
+        <button id="hamburger-btn" class="hamburger-btn" aria-label="Ouvrir le menu">
+          <span></span><span></span><span></span>
+        </button>
+        <span class="mobile-brand">🪹 Nestio</span>
+        <div style="width:40px"></div><!-- espace symétrique -->
+      </div>
+
+      <div id="page-content"></div>
+    </main>
+  </div>
+
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div id="modal-box" class="modal-box">
+      <button id="modal-close" class="modal-close">✕</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+  <div id="toast-container"></div>
+
+  <script src="pages/dashboard.js"></script>
+  <script src="pages/properties.js"></script>
+  <script src="pages/units.js"></script>
+  <script src="pages/locataires.js"></script>
+  <script src="pages/sejours.js"></script>
+  <script src="pages/calendrier.js"></script>
+  <script src="pages/transactions.js"></script>
+  <script src="pages/caisse.js"></script>
+  <script src="pages/finance.js"></script>
+  <script src="pages/travaux.js"></script>
+  <script src="pages/compteurs.js"></script>
+  <script src="pages/categories.js"></script>
+  <script src="pages/users.js"></script>
+  <script src="pages/notes.js"></script>
+  <script src="app.js"></script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+
+</html>
