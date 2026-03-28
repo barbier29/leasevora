@@ -1969,6 +1969,335 @@ textarea.form-control {
   }
 }
 
+/* ── Finance Tabs & Report UI ───────────────────────────────────────────────── */
+.fin-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 20px 0 0;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0;
+}
+
+.fin-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+  margin-bottom: -1px;
+}
+
+.fin-tab:hover { color: var(--text-1); }
+.fin-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.fin-filter-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin: 16px 0;
+  overflow: hidden;
+}
+
+.fin-filter-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px 20px 12px;
+}
+
+.fin-period-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 20px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.fin-prompt {
+  padding: 48px;
+  text-align: center;
+  color: var(--text-3);
+  font-size: 14px;
+}
+
+/* ── État Financier Statement ─────────────────────────────────────────────── */
+.fin-statement-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.fin-stmt-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px 28px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-1);
+  flex-wrap: wrap;
+}
+
+.fin-stmt-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-1);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.fin-stmt-meta {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 8px;
+}
+
+.fin-kpi-trio {
+  display: flex;
+  gap: 24px;
+  flex-shrink: 0;
+}
+
+.fin-kpi { text-align: right; }
+.fin-kpi-val { font-size: 18px; font-weight: 700; }
+.fin-kpi-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+.fin-section { border-bottom: 1px solid var(--border); }
+
+.fin-section-label {
+  padding: 10px 28px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--border);
+}
+
+.fin-section-rev { background: rgba(16,185,129,0.05); color: var(--green); }
+.fin-section-exp { background: rgba(244,63,94,0.05);  color: var(--red);   }
+
+.fin-cat-row { border-bottom: 1px solid rgba(255,255,255,0.04); }
+
+.fin-cat-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 28px;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.fin-cat-header:hover { background: var(--bg-3); }
+.fin-cat-name { font-size: 13px; color: var(--text-1); }
+.fin-cat-count { font-size: 10px; color: var(--text-3); }
+
+.fin-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 28px;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.fin-total-rev {
+  background: rgba(16,185,129,0.09);
+  color: var(--green);
+  border-top: 1px solid rgba(16,185,129,0.25);
+}
+
+.fin-total-exp {
+  background: rgba(244,63,94,0.09);
+  color: var(--red);
+  border-top: 1px solid rgba(244,63,94,0.25);
+}
+
+.fin-net-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 22px 28px;
+  background: var(--bg-1);
+  border-top: 3px solid var(--border);
+}
+
+.fin-net-label { font-size: 14px; font-weight: 800; color: var(--text-1); letter-spacing: 0.5px; }
+.fin-net-sub   { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+.fin-net-value { font-size: 26px; font-weight: 800; }
+.fin-empty-row { padding: 14px 28px; color: var(--text-3); font-size: 13px; font-style: italic; }
+
+/* Monthly chart in statement */
+.fin-monthly-chart {
+  display: flex;
+  gap: 6px;
+  padding: 20px 28px;
+  overflow-x: auto;
+  align-items: flex-end;
+}
+
+.fin-month-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 64px;
+}
+
+.fin-month-bar-wrap {
+  height: 60px;
+  display: flex;
+  align-items: flex-end;
+  width: 24px;
+}
+
+.fin-month-bar {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  min-height: 3px;
+  transition: height 0.3s ease;
+}
+
+.fin-month-rev   { font-size: 10px; color: var(--text-2); white-space: nowrap; }
+.fin-month-net   { font-size: 10px; font-weight: 600; white-space: nowrap; }
+.fin-month-label { font-size: 10px; color: var(--text-3); white-space: nowrap; }
+
+/* ── Rapport par Bien ─────────────────────────────────────────────────────── */
+.fin-global-totals {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 28px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.fin-global-kpi { text-align: center; }
+.fin-global-val { font-size: 22px; font-weight: 700; }
+.fin-global-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px; }
+.fin-global-sep { font-size: 22px; color: var(--text-3); font-weight: 300; }
+
+.fin-compare-table-wrap {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.fin-compare-table { margin: 0; }
+
+/* Property detail cards */
+.fin-prop-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.fin-prop-card-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 22px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.fin-prop-name    { font-size: 15px; font-weight: 700; color: var(--text-1); }
+.fin-prop-address { font-size: 12px; color: var(--text-3); margin-top: 3px; }
+
+.fin-prop-kpis {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.fin-prop-kpi { text-align: center; }
+.fin-prop-kpi span { font-size: 16px; font-weight: 700; }
+.fin-prop-kpi small { display: block; font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
+
+/* Mini monthly bars on card */
+.fin-card-monthly {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  margin-left: auto;
+  height: 48px;
+}
+
+.fin-cm-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 14px;
+}
+
+.fin-cm-bar {
+  width: 10px;
+  background: var(--accent);
+  opacity: 0.6;
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+}
+
+.fin-cm-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.fin-prop-card-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.fin-prop-col {
+  padding: 16px 22px;
+}
+
+.fin-prop-col:first-child { border-right: 1px solid var(--border); }
+
+.fin-prop-col-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.fin-cat-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.fin-cat-line:last-child { border-bottom: none; }
+.fin-cat-line-name { color: var(--text-2); }
+
+.fin-prop-card-footer { padding: 0; }
+.fin-unit-table-wrap  { overflow-x: auto; }
+
 /* ── Notes & Messages ──────────────────────────────────────────────────────── */
 .notes-filters {
   display: flex;
