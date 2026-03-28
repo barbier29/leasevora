@@ -6,6 +6,18 @@ async function renderSejoursPage(container) {
     ANNULE: { label: 'Annulé', cls: 'badge-out' },
   };
   const TARIFS = { JOURNALIER: 'Journalier', MENSUEL: 'Mensuel', FORFAIT: 'Forfait période' };
+  const PAIEMENT_STATUTS = {
+    EN_ATTENTE: { label: 'Impayé', cls: 'badge-out' },
+    PARTIEL:    { label: 'Partiel', cls: 'badge-building' },
+    SOLDE:      { label: 'Soldé', cls: 'badge-occupied' },
+  };
+  const CAUTION_STATUTS = {
+    AUCUNE:            { label: '—', cls: '' },
+    EN_ATTENTE:        { label: 'Caution tenue', cls: 'badge-building' },
+    RESTITUEE:         { label: 'Caution restituée', cls: 'badge-occupied' },
+    UTILISEE_PARTIELLE:{ label: 'Caution partielle', cls: 'badge-standalone' },
+    UTILISEE_TOTALE:   { label: 'Caution utilisée', cls: 'badge-out' },
+  };
 
   async function load() {
     try {
@@ -51,12 +63,14 @@ async function renderSejoursPage(container) {
       <div class="card">
         <table>
           <thead><tr>
-            <th>Locataire</th><th>Fiche</th><th>Appartement</th><th>Propriété</th><th>Type</th><th>Arrivée</th><th>Départ</th><th>Durée</th><th>Tarif</th><th>Total</th><th>Statut</th><th></th>
+            <th>Locataire</th><th>Fiche</th><th>Appartement</th><th>Propriété</th><th>Type</th><th>Arrivée</th><th>Départ</th><th>Durée</th><th>Tarif</th><th>Total dû</th><th>Payé</th><th>Paiement</th><th>Caution</th><th>Statut</th><th></th>
           </tr></thead>
           <tbody>
             ${sejours.length ? sejours.map(s => {
       const st = STATUTS[s.statut] || { label: s.statut, cls: '' };
       const loc = locs.find(l => l.id === s.locataire_id);
+      const paiSt = PAIEMENT_STATUTS[s.statut_paiement || 'EN_ATTENTE'];
+      const cauSt = CAUTION_STATUTS[s.caution_statut] || CAUTION_STATUTS['AUCUNE'];
       return `<tr>
                 <td><strong>${s.locataire}</strong>${s.notes ? `<br><small class="text-muted">${s.notes}</small>` : ''}</td>
                 <td>${loc ? `<button class="btn btn-ghost btn-sm view-loc-sej" data-locid="${loc.id}">👤</button>` : '<span class="text-muted">—</span>'}</td>
@@ -67,15 +81,19 @@ async function renderSejoursPage(container) {
                 <td class="text-muted">${s.date_fin ? fmtDate(s.date_fin) : '—'}</td>
                 <td class="text-muted">${duree(s)}</td>
                 <td class="amount-in">${s.type_tarif === 'FORFAIT' ? `${fmtMoney(s.montant)} <span style="font-size:10px;font-weight:400;opacity:.6">total</span>` : `${fmtMoney(s.montant)}/${s.type_tarif === 'JOURNALIER' ? 'j' : 'mois'}`}</td>
-                <td class="amount-in">${fmtMoney(totalSejour(s))}</td>
+                <td class="amount-in">${fmtMoney(s.montant_total_du || totalSejour(s))}</td>
+                <td class="amount-in">${fmtMoney(s.montant_paye || 0)}</td>
+                <td><span class="badge ${paiSt.cls}">${paiSt.label}${s.solde_restant > 0 ? `<br><small>${fmtMoney(s.solde_restant)} restant</small>` : ''}</span></td>
+                <td><span class="badge ${cauSt.cls}">${s.caution_montant > 0 ? fmtMoney(s.caution_montant) + '<br>' : ''}${s.caution_montant > 0 ? cauSt.label : '—'}</span></td>
                 <td><span class="badge ${st.cls}">${st.label}</span></td>
                 <td style="text-align:right;white-space:nowrap">
+                  <button class="btn btn-ghost btn-sm paiement-btn" data-id="${s.id}">💰</button>
                   <button class="btn btn-ghost btn-sm edit-sej-btn" data-id="${s.id}">Modifier</button>
                   <button class="btn btn-danger btn-sm del-sej-btn" data-id="${s.id}" data-name="${s.locataire}">✕</button>
                 </td>
               </tr>`;
     }).join('')
-        : '<tr><td colspan="12"><div class="empty-state"><div class="empty-icon">🛏️</div><p>Aucun séjour enregistré.</p></div></td></tr>'}
+        : '<tr><td colspan="15"><div class="empty-state"><div class="empty-icon">🛏️</div><p>Aucun séjour enregistré.</p></div></td></tr>'}
           </tbody>
         </table>
       </div>
@@ -90,6 +108,12 @@ async function renderSejoursPage(container) {
         try { await api(`/sejours/${btn.dataset.id}`, { method: 'DELETE' }); toast('Séjour supprimé'); load(); }
         catch (e) { toast(e.message, 'error'); }
       }));
+    container.querySelectorAll('.paiement-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const s = sejours.find(x => x.id == btn.dataset.id);
+        if (s) openPaiementPanel(s);
+      });
+    });
     container.querySelectorAll('.view-loc-sej').forEach(btn =>
       btn.addEventListener('click', async () => {
         const l = await api(`/locataires/${btn.dataset.locid}`);
@@ -187,6 +211,19 @@ async function renderSejoursPage(container) {
           <label class="form-label">Notes</label>
           <input class="form-control" id="f-notes" value="${sej?.notes || ''}" placeholder="Optionnel" />
         </div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:12px">CAUTION DE GARANTIE (optionnel)</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Montant de la caution</label>
+              <input class="form-control" id="f-caution" type="number" min="0" step="0.01" value="${sej?.caution_montant || 0}" placeholder="0" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date de perception</label>
+              <input class="form-control" id="f-caution-date" type="date" value="${sej?.caution_date || ''}" />
+            </div>
+          </div>
+        </div>
         <div class="form-actions">
           <button type="button" class="btn btn-ghost" onclick="closeModal()">Annuler</button>
           <button type="submit" class="btn btn-primary">${isEdit ? 'Enregistrer' : 'Créer le séjour'}</button>
@@ -245,12 +282,139 @@ async function renderSejoursPage(container) {
         montant: parseFloat(document.getElementById('f-montant').value),
         statut: document.getElementById('f-statut').value,
         notes: document.getElementById('f-notes').value.trim() || null,
+        caution_montant: parseFloat(document.getElementById('f-caution').value) || 0,
+        caution_date: document.getElementById('f-caution-date').value || null,
       };
       try {
         if (isEdit) { await api(`/sejours/${sej.id}`, { method: 'PUT', body }); toast('Séjour modifié'); }
         else { await api('/sejours', { method: 'POST', body }); toast('Séjour créé'); }
         closeModal(); load();
       } catch (e) { toast(e.message, 'error'); }
+    });
+  }
+
+  async function openPaiementPanel(s) {
+    // Load full solde detail
+    let solde;
+    try {
+      solde = await api(`/sejours/${s.id}/solde`);
+    } catch (e) { toast(e.message, 'error'); return; }
+
+    const netC = s.solde_restant > 0 ? 'var(--red)' : 'var(--green)';
+    const cautionSection = solde.caution_montant > 0 ? `
+        <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border)">
+            <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:10px">CAUTION</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <div>
+                    <div style="font-size:14px;font-weight:600">${fmtMoney(solde.caution_montant)}</div>
+                    <div style="font-size:11px;color:var(--text-3)">Statut : ${CAUTION_STATUTS[solde.caution_statut]?.label || solde.caution_statut}</div>
+                    ${solde.caution_notes ? `<div style="font-size:11px;color:var(--text-3)">${solde.caution_notes}</div>` : ''}
+                </div>
+                ${['EN_ATTENTE', 'UTILISEE_PARTIELLE'].includes(solde.caution_statut) ? `
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="btn btn-ghost btn-sm" id="btn-caution-restituer">✅ Restituer</button>
+                    <button class="btn btn-ghost btn-sm" id="btn-caution-utiliser">🔧 Utiliser pour réparations</button>
+                </div>` : ''}
+            </div>
+            ${solde.caution_date_restitution ? `<div style="font-size:11px;color:var(--text-3)">Restituée le ${fmtDate(solde.caution_date_restitution)}</div>` : ''}
+        </div>` : '';
+
+    const paiementsHtml = solde.paiements.length ? `
+        <table style="font-size:12px;margin-top:10px">
+            <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th style="text-align:right">Montant</th></tr></thead>
+            <tbody>
+            ${solde.paiements.map(p => `<tr>
+                <td style="white-space:nowrap">${fmtDate(p.date)}</td>
+                <td class="text-muted">${p.category_name}</td>
+                <td class="text-muted">${p.description || '—'}</td>
+                <td class="amount-in" style="text-align:right">${fmtMoney(p.amount)}</td>
+            </tr>`).join('')}
+            </tbody>
+        </table>` : `<p style="font-size:12px;color:var(--text-3);font-style:italic;margin-top:8px">Aucun paiement enregistré.</p>`;
+
+    openModal(`
+        <div class="modal-header">
+            <h3 class="modal-title">💰 Suivi des paiements — ${solde.locataire}</h3>
+        </div>
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:16px">${solde.unit_label}</div>
+
+        <!-- Bilan -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
+            <div style="background:var(--bg-3);border-radius:var(--radius);padding:12px;text-align:center">
+                <div style="font-size:16px;font-weight:700;color:var(--text-1)">${fmtMoney(solde.montant_total_du)}</div>
+                <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Total dû</div>
+            </div>
+            <div style="background:var(--bg-3);border-radius:var(--radius);padding:12px;text-align:center">
+                <div style="font-size:16px;font-weight:700;color:var(--green)">${fmtMoney(solde.montant_paye)}</div>
+                <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Payé (${solde.nb_paiements || 0} paiem.)</div>
+            </div>
+            <div style="background:var(--bg-3);border-radius:var(--radius);padding:12px;text-align:center">
+                <div style="font-size:16px;font-weight:700;color:${netC}">${fmtMoney(solde.solde_restant)}</div>
+                <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Solde restant</div>
+            </div>
+        </div>
+
+        <!-- Historique paiements -->
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:6px">HISTORIQUE DES PAIEMENTS</div>
+        ${paiementsHtml}
+
+        <!-- Caution section -->
+        ${cautionSection}
+
+        <div class="form-actions" style="margin-top:20px">
+            <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
+        </div>
+    `);
+
+    // Bind caution actions
+    document.getElementById('btn-caution-restituer')?.addEventListener('click', async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      try {
+        await api(`/sejours/${s.id}/caution`, {
+          method: 'PATCH',
+          body: { caution_statut: 'RESTITUEE', caution_date_restitution: today, caution_montant_utilise: 0 }
+        });
+        toast('Caution restituée ✓');
+        closeModal();
+        load();
+      } catch (e) { toast(e.message, 'error'); }
+    });
+
+    document.getElementById('btn-caution-utiliser')?.addEventListener('click', () => {
+      // Show a sub-form for damage amount + notes
+      const montantCaution = solde.caution_montant;
+      openModal(`
+            <div class="modal-header"><h3 class="modal-title">🔧 Utiliser la caution pour réparations</h3></div>
+            <form id="form-caution-use">
+                <div class="form-group">
+                    <label class="form-label">Montant retenu (max ${fmtMoney(montantCaution)})</label>
+                    <input class="form-control" id="ci-montant" type="number" min="0.01" max="${montantCaution}" step="0.01" value="${montantCaution}" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes / description des dégâts</label>
+                    <textarea class="form-control" id="ci-notes" rows="3" placeholder="Décrivez les dégâts constatés…"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Confirmer</button>
+                </div>
+            </form>
+        `);
+      document.getElementById('form-caution-use').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const montantUtilise = parseFloat(document.getElementById('ci-montant').value);
+        const notes = document.getElementById('ci-notes').value.trim();
+        const statut = montantUtilise >= montantCaution ? 'UTILISEE_TOTALE' : 'UTILISEE_PARTIELLE';
+        try {
+          await api(`/sejours/${s.id}/caution`, {
+            method: 'PATCH',
+            body: { caution_statut: statut, caution_montant_utilise: montantUtilise, caution_notes: notes || null }
+          });
+          toast('Caution mise à jour ✓');
+          closeModal();
+          load();
+        } catch (e) { toast(e.message, 'error'); }
+      });
     });
   }
 

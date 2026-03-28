@@ -114,6 +114,49 @@ async function renderDashboardPage(container) {
         </table>
       </div>` : ''}
 
+      ${d.alertesPaiements?.length ? `
+      <div class="card" style="border-left:3px solid var(--yellow,#f59e0b);margin-bottom:20px">
+          <div class="card-header">
+              <span class="card-title">💸 Paiements en retard / partiels</span>
+              <span class="badge badge-building">${d.alertesPaiements.length} séjour${d.alertesPaiements.length > 1 ? 's' : ''}</span>
+          </div>
+          <table>
+              <thead><tr><th>Locataire</th><th>Appartement</th><th>Propriété</th><th>Total dû</th><th>Payé</th><th>Solde</th><th>Statut</th></tr></thead>
+              <tbody>
+                  ${d.alertesPaiements.map(a => `<tr>
+                      <td><strong>${a.locataire}</strong></td>
+                      <td class="text-muted">${a.unit_label}</td>
+                      <td class="text-muted">${a.property_name}</td>
+                      <td class="amount-in">${fmtMoney(a.montant_total_du)}</td>
+                      <td class="amount-in">${fmtMoney(a.montant_paye)}</td>
+                      <td class="amount-out">${fmtMoney(a.solde_restant)}</td>
+                      <td><span class="badge ${a.statut_paiement === 'EN_ATTENTE' ? 'badge-out' : 'badge-building'}">${a.statut_paiement === 'EN_ATTENTE' ? 'Impayé' : 'Partiel'}</span></td>
+                  </tr>`).join('')}
+              </tbody>
+          </table>
+      </div>` : ''}
+
+      ${d.alertesCautions?.length ? `
+      <div class="card" style="border-left:3px solid var(--accent);margin-bottom:20px">
+          <div class="card-header">
+              <span class="card-title">🏦 Cautions à restituer</span>
+              <span class="badge badge-standalone">${d.alertesCautions.length} séjour${d.alertesCautions.length > 1 ? 's' : ''} terminé${d.alertesCautions.length > 1 ? 's' : ''}</span>
+          </div>
+          <table>
+              <thead><tr><th>Locataire</th><th>Appartement</th><th>Propriété</th><th>Fin séjour</th><th>Caution</th><th>Statut</th></tr></thead>
+              <tbody>
+                  ${d.alertesCautions.map(a => `<tr>
+                      <td><strong>${a.locataire}</strong></td>
+                      <td class="text-muted">${a.unit_label}</td>
+                      <td class="text-muted">${a.property_name}</td>
+                      <td class="text-muted">${fmtDate(a.date_fin)}</td>
+                      <td class="amount-in">${fmtMoney(a.caution_montant)}</td>
+                      <td><span class="badge badge-building">À traiter</span></td>
+                  </tr>`).join('')}
+              </tbody>
+          </table>
+      </div>` : ''}
+
       <!-- Graphique 12 mois -->
       <div class="card" style="margin-bottom:20px">
         <div class="card-header"><span class="card-title">📈 Évolution sur 12 mois</span></div>

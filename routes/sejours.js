@@ -5,14 +5,54 @@ const { requireRole, requireAuth } = require('../middleware/auth');
 
 const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE');
 
+// Calcule le total théorique d'un séjour selon son tarif et ses dates
+function computeTotal(s) {
+    if (s.type_tarif === 'FORFAIT') return s.montant;
+    if (!s.date_fin) return s.montant; // no end date — just return unit price
+    const days = Math.max(0, Math.round((new Date(s.date_fin) - new Date(s.date_debut)) / 86400000));
+    if (s.type_tarif === 'MENSUEL') {
+        const months = Math.max(1, Math.round(days / 30));
+        return s.montant * months;
+    }
+    if (s.type_tarif === 'HEBDOMADAIRE') {
+        const weeks = Math.max(1, Math.round(days / 7));
+        return s.montant * weeks;
+    }
+    // JOURNALIER / NUITEE
+    return s.montant * Math.max(1, days);
+}
+
+// Calcule le statut de paiement depuis les transactions liées
+function computePaymentStatus(s, data) {
+    const totalDu = s.montant_total_du || computeTotal(s);
+    const paiements = (data.transactions || []).filter(t =>
+        t.sejour_id === s.id && t.kind === 'IN'
+    );
+    const totalPaye = paiements.reduce((sum, t) => sum + t.amount, 0);
+    const solde = totalDu - totalPaye;
+    let statut_paiement;
+    if (totalPaye <= 0)           statut_paiement = 'EN_ATTENTE';
+    else if (solde <= 0.01)       statut_paiement = 'SOLDE';
+    else                          statut_paiement = 'PARTIEL';
+    return {
+        montant_total_du: totalDu,
+        montant_paye: totalPaye,
+        solde_restant: Math.max(0, solde),
+        statut_paiement,
+        nb_paiements: paiements.length,
+    };
+}
+
 function enrich(s, data) {
     const unit = data.units.find(u => u.id === s.unit_id) || {};
     const prop = data.properties.find(p => p.id === unit.property_id) || {};
+    const payment = computePaymentStatus(s, data);
     return {
         ...s,
         unit_label: unit.label || '?',
         property_name: prop.name || '?',
         property_id: unit.property_id || null,
+        ...payment,
     };
 }
 
@@ -21,13 +61,11 @@ router.get('/', requireAuth, (req, res) => {
     const { unit_id, property_id } = req.query;
     const data = load();
     let list = data.sejours;
-
     if (unit_id) list = list.filter(s => s.unit_id === Number(unit_id));
     if (property_id) {
         const unitIds = data.units.filter(u => u.property_id === Number(property_id)).map(u => u.id);
         list = list.filter(s => unitIds.includes(s.unit_id));
     }
-
     list = list.sort((a, b) => b.date_debut.localeCompare(a.date_debut));
     res.json(list.map(s => enrich(s, data)));
 });
@@ -40,9 +78,67 @@ router.get('/:id', requireAuth, (req, res) => {
     res.json(enrich(s, data));
 });
 
-// POST create — tous les rôles (l'employé peut enregistrer un séjour)
+// GET /sejours/:id/solde — détail des paiements (tous rôles)
+router.get('/:id/solde', requireAuth, (req, res) => {
+    const data = load();
+    const s = data.sejours.find(s => s.id === Number(req.params.id));
+    if (!s) return res.status(404).json({ error: 'Non trouvé' });
+
+    const totalDu = s.montant_total_du || computeTotal(s);
+    const paiements = (data.transactions || [])
+        .filter(t => t.sejour_id === s.id && t.kind === 'IN')
+        .sort((a, b) => b.date.localeCompare(a.date))
+        .map(t => {
+            const cat = data.categories.find(c => c.id === t.category_id) || {};
+            return { id: t.id, date: t.date, amount: t.amount, description: t.description || null, category_name: cat.name || '?', source: t.source || 'BANQUE' };
+        });
+    const totalPaye = paiements.reduce((sum, t) => sum + t.amount, 0);
+    const solde = totalDu - totalPaye;
+
+    res.json({
+        sejour_id: s.id,
+        locataire: s.locataire,
+        unit_label: (data.units.find(u => u.id === s.unit_id) || {}).label || '?',
+        montant_total_du: totalDu,
+        montant_paye: totalPaye,
+        solde_restant: Math.max(0, solde),
+        statut_paiement: totalPaye <= 0 ? 'EN_ATTENTE' : solde <= 0.01 ? 'SOLDE' : 'PARTIEL',
+        paiements,
+        caution_montant: s.caution_montant || 0,
+        caution_statut: s.caution_statut || 'AUCUNE',
+        caution_montant_utilise: s.caution_montant_utilise || 0,
+        caution_notes: s.caution_notes || null,
+        caution_date: s.caution_date || null,
+        caution_date_restitution: s.caution_date_restitution || null,
+    });
+});
+
+// PATCH /sejours/:id/caution — mettre à jour la caution
+router.patch('/:id/caution', MGR, (req, res) => {
+    const { caution_statut, caution_montant_utilise, caution_notes, caution_date_restitution } = req.body;
+    const data = load();
+    const idx = data.sejours.findIndex(s => s.id === Number(req.params.id));
+    if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
+    const s = data.sejours[idx];
+
+    const VALID = ['AUCUNE', 'EN_ATTENTE', 'RESTITUEE', 'UTILISEE_PARTIELLE', 'UTILISEE_TOTALE'];
+    if (caution_statut && !VALID.includes(caution_statut))
+        return res.status(400).json({ error: 'Statut caution invalide' });
+
+    if (caution_statut !== undefined)          s.caution_statut            = caution_statut;
+    if (caution_montant_utilise !== undefined) s.caution_montant_utilise   = Number(caution_montant_utilise);
+    if (caution_notes !== undefined)           s.caution_notes             = caution_notes || null;
+    if (caution_date_restitution !== undefined) s.caution_date_restitution = caution_date_restitution || null;
+
+    save(data);
+    res.json(enrich(s, data));
+});
+
+// POST create — tous les rôles
 router.post('/', (req, res) => {
-    const { unit_id, locataire, locataire_id, date_debut, date_fin, heure_entree, heure_sortie, type_tarif, montant, statut, notes } = req.body;
+    const { unit_id, locataire, locataire_id, date_debut, date_fin,
+            heure_entree, heure_sortie, type_tarif, montant, statut, notes,
+            caution_montant, caution_date } = req.body;
     if (!unit_id || !locataire || !date_debut || !type_tarif || !montant)
         return res.status(400).json({ error: 'unit_id, locataire, date_debut, type_tarif, montant requis' });
     const parsedMontant = parseFloat(montant);
@@ -50,6 +146,7 @@ router.post('/', (req, res) => {
         return res.status(400).json({ error: 'Le montant doit être positif' });
 
     const data = load();
+    const cautMontant = caution_montant ? Number(caution_montant) : 0;
     const sejour = {
         id: nextId(data, 'sejours'),
         unit_id: Number(unit_id),
@@ -60,9 +157,15 @@ router.post('/', (req, res) => {
         heure_entree: heure_entree || null,
         heure_sortie: heure_sortie || null,
         type_tarif,
-        montant: Number(montant),
+        montant: parsedMontant,
         statut: statut || 'A_VENIR',
         notes: notes || null,
+        caution_montant: cautMontant,
+        caution_statut: cautMontant > 0 ? 'EN_ATTENTE' : 'AUCUNE',
+        caution_date: cautMontant > 0 ? (caution_date || date_debut) : null,
+        caution_date_restitution: null,
+        caution_montant_utilise: 0,
+        caution_notes: null,
         created_at: new Date().toISOString(),
     };
     data.sejours.push(sejour);
@@ -70,26 +173,40 @@ router.post('/', (req, res) => {
     res.status(201).json(enrich(sejour, data));
 });
 
-// PUT update — tous les rôles (l'employé peut changer le statut)
+// PUT update — tous les rôles
 router.put('/:id', (req, res) => {
-    const { unit_id, locataire, locataire_id, date_debut, date_fin, heure_entree, heure_sortie, type_tarif, montant, statut, notes } = req.body;
+    const { unit_id, locataire, locataire_id, date_debut, date_fin,
+            heure_entree, heure_sortie, type_tarif, montant, statut, notes,
+            caution_montant, caution_date } = req.body;
     const parsedMontant = parseFloat(montant);
     if (isNaN(parsedMontant) || parsedMontant <= 0)
         return res.status(400).json({ error: 'Le montant doit être positif' });
     const data = load();
     const idx = data.sejours.findIndex(s => s.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
+
+    const cautMontant = caution_montant !== undefined ? Number(caution_montant) : data.sejours[idx].caution_montant;
+    // If caution amount changes from 0 to >0, set status to EN_ATTENTE unless already set
+    let cautStatut = data.sejours[idx].caution_statut;
+    if (cautMontant > 0 && cautStatut === 'AUCUNE') cautStatut = 'EN_ATTENTE';
+    if (cautMontant === 0) cautStatut = 'AUCUNE';
+
     data.sejours[idx] = {
         ...data.sejours[idx],
         unit_id: Number(unit_id),
         locataire,
         locataire_id: locataire_id ? Number(locataire_id) : null,
-        date_debut, date_fin: date_fin || null,
+        date_debut,
+        date_fin: date_fin || null,
         heure_entree: heure_entree || null,
         heure_sortie: heure_sortie || null,
-        type_tarif, montant: Number(montant),
+        type_tarif,
+        montant: parsedMontant,
         statut: statut || 'A_VENIR',
         notes: notes || null,
+        caution_montant: cautMontant,
+        caution_statut: cautStatut,
+        caution_date: cautMontant > 0 ? (caution_date || data.sejours[idx].caution_date || date_debut) : null,
     };
     save(data);
     res.json(enrich(data.sejours[idx], data));

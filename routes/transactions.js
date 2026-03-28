@@ -22,13 +22,14 @@ function enrich(t, data) {
 function monthOf(date) { return date ? date.slice(0, 7) : ''; }
 
 router.get('/', MGR, (req, res) => {
-    const { property_id, unit_id, month, source } = req.query;
+    const { property_id, unit_id, month, source, sejour_id } = req.query;
     const data = load();
     let txns = data.transactions;
     if (property_id) txns = txns.filter(t => t.property_id === Number(property_id));
     if (unit_id) txns = txns.filter(t => t.unit_id === Number(unit_id));
     if (month) txns = txns.filter(t => monthOf(t.date) === month);
     if (source) txns = txns.filter(t => t.source === source);
+    if (sejour_id) txns = txns.filter(t => t.sejour_id === Number(sejour_id));
     txns = txns.sort((a, b) => b.date.localeCompare(a.date));
     res.json(txns.map(t => enrich(t, data)));
 });
@@ -41,7 +42,7 @@ router.get('/:id', MGR, (req, res) => {
 });
 
 router.post('/', MGR, (req, res) => {
-    const { date, description, kind, amount, category_id, property_id, unit_id, source } = req.body;
+    const { date, description, kind, amount, category_id, property_id, unit_id, source, sejour_id } = req.body;
     if (!date || !kind || !amount || !category_id || !property_id)
         return res.status(400).json({ error: 'date, kind, amount, category_id, property_id requis' });
     const parsedAmount = parseFloat(amount);
@@ -57,6 +58,7 @@ router.post('/', MGR, (req, res) => {
         category_id: Number(category_id),
         property_id: Number(property_id),
         unit_id: unit_id ? Number(unit_id) : null,
+        sejour_id: sejour_id ? Number(sejour_id) : null,
         source: source || (kind === 'IN' ? 'BANQUE' : 'CAISSE'),
         created_at: new Date().toISOString(),
     };
@@ -66,7 +68,7 @@ router.post('/', MGR, (req, res) => {
 });
 
 router.put('/:id', MGR, (req, res) => {
-    const { date, description, kind, amount, category_id, property_id, unit_id, source } = req.body;
+    const { date, description, kind, amount, category_id, property_id, unit_id, source, sejour_id } = req.body;
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0)
         return res.status(400).json({ error: 'Le montant doit être positif' });
@@ -80,6 +82,7 @@ router.put('/:id', MGR, (req, res) => {
         category_id: Number(category_id),
         property_id: Number(property_id),
         unit_id: unit_id ? Number(unit_id) : null,
+        sejour_id: sejour_id ? Number(sejour_id) : (data.transactions[idx].sejour_id || null),
         source: source || data.transactions[idx].source || 'BANQUE',
     };
     save(data);

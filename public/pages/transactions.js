@@ -1,12 +1,14 @@
 async function renderTransactionsPage(container) {
   async function load() {
     try {
-      const [txns, props, cats] = await Promise.all([
+      const [txns, props, cats, units, sejours] = await Promise.all([
         api('/transactions'),
         api('/properties'),
         api('/categories'),
+        api('/units'),
+        api('/sejours').catch(() => []),
       ]);
-      render(txns, props, cats);
+      render(txns, props, cats, units, sejours);
     } catch (e) {
       container.innerHTML = `<p class="text-muted">${e.message}</p>`;
     }
@@ -14,7 +16,7 @@ async function renderTransactionsPage(container) {
 
   const SOURCE_LABEL = { CAISSE: '🏦 Caisse', BANQUE: '🏛️ Banque' };
 
-  function render(txns, props, cats) {
+  function render(txns, props, cats, units, sejours) {
     container.innerHTML = `
       <div class="page-header">
         <div>
@@ -37,7 +39,7 @@ async function renderTransactionsPage(container) {
                 <td><span class="badge ${t.source === 'CAISSE' ? 'badge-building' : 'badge-standalone'}">${SOURCE_LABEL[t.source] || t.source}</span></td>
                 <td class="text-muted">${t.category_name}</td>
                 <td class="text-muted">${t.property_name}</td>
-                <td class="text-muted">${t.unit_label || '<span style="font-style:italic;color:var(--text-3)">Tout l\'immeuble</span>'}</td>
+                <td class="text-muted">${t.unit_label || '<span style="font-style:italic;color:var(--text-3)">Tout l\'immeuble</span>'}${t.sejour_id ? `<br><small style="color:var(--accent);font-size:10px">🔗 Séjour #${t.sejour_id}</small>` : ''}</td>
                 <td class="text-right ${t.kind === 'IN' ? 'amount-in' : 'amount-out'}">${t.kind === 'IN' ? '+' : '-'}${fmtMoney(t.amount)}</td>
                 <td style="text-align:right;white-space:nowrap">
                   <button class="btn btn-ghost btn-sm edit-txn-btn" data-id="${t.id}">Modifier</button>
@@ -50,9 +52,9 @@ async function renderTransactionsPage(container) {
       </div>
     `;
 
-    document.getElementById('add-txn-btn').addEventListener('click', () => showForm(null, props, cats));
+    document.getElementById('add-txn-btn').addEventListener('click', () => showForm(null, props, cats, units, sejours));
     container.querySelectorAll('.edit-txn-btn').forEach(btn => {
-      btn.addEventListener('click', () => showForm(txns.find(t => t.id == btn.dataset.id), props, cats));
+      btn.addEventListener('click', () => showForm(txns.find(t => t.id == btn.dataset.id), props, cats, units, sejours));
     });
     container.querySelectorAll('.del-txn-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
@@ -65,7 +67,7 @@ async function renderTransactionsPage(container) {
     });
   }
 
-  async function showForm(txn = null, props = [], cats = []) {
+  async function showForm(txn = null, props = [], cats = [], units = [], sejours = []) {
     const isEdit = !!txn;
     const today = new Date().toISOString().slice(0, 10);
     const initUnits = txn ? await api(`/units?property_id=${txn.property_id}`) : [];
@@ -128,6 +130,14 @@ async function renderTransactionsPage(container) {
             <option value="">— Tout l'immeuble —</option>
             ${initUnits.map(u => `<option value="${u.id}" ${txn?.unit_id == u.id ? 'selected' : ''}>${u.label}</option>`).join('')}
           </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Séjour lié (optionnel)</label>
+          <select class="form-control" id="f-sejour">
+            <option value="">— Aucun séjour lié —</option>
+            ${sejours.map(s => `<option value="${s.id}" ${txn?.sejour_id == s.id ? 'selected' : ''}>${s.locataire} — ${s.unit_label || ''} (${fmtDate(s.date_debut)}${s.date_fin ? ' → ' + fmtDate(s.date_fin) : ''})</option>`).join('')}
+          </select>
+          <div style="font-size:11px;color:var(--text-3);margin-top:4px">Lier cette transaction au suivi des paiements d'un séjour</div>
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-ghost" onclick="closeModal()">Annuler</button>
@@ -196,6 +206,7 @@ async function renderTransactionsPage(container) {
         category_id: parseInt(document.getElementById('f-cat').value),
         property_id: parseInt(document.getElementById('f-prop').value),
         unit_id: document.getElementById('f-unit').value ? parseInt(document.getElementById('f-unit').value) : null,
+        sejour_id: document.getElementById('f-sejour').value ? Number(document.getElementById('f-sejour').value) : null,
       };
       try {
         let result;

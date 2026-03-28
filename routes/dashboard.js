@@ -102,11 +102,51 @@ router.get('/', (req, res) => {
     });
   }
 
+  const alertesCautions = data.sejours
+    .filter(s => s.statut === 'TERMINE' && ['EN_ATTENTE', 'UTILISEE_PARTIELLE'].includes(s.caution_statut || 'AUCUNE') && (s.caution_montant || 0) > 0)
+    .map(s => {
+      const unit = data.units.find(u => u.id === s.unit_id) || {};
+      const prop = data.properties.find(p => p.id === unit.property_id) || {};
+      return {
+        sejour_id: s.id, locataire: s.locataire,
+        unit_label: unit.label || '?', property_name: prop.name || '?',
+        caution_montant: s.caution_montant, caution_statut: s.caution_statut,
+        date_fin: s.date_fin,
+      };
+    });
+
+  const alertesPaiements = data.sejours
+    .filter(s => s.statut === 'EN_COURS')
+    .map(s => {
+      const unit = data.units.find(u => u.id === s.unit_id) || {};
+      const prop = data.properties.find(p => p.id === unit.property_id) || {};
+      function calcTotal(s) {
+        if (s.type_tarif === 'FORFAIT') return s.montant;
+        if (!s.date_fin) return s.montant;
+        const days = Math.max(0, Math.round((new Date(s.date_fin) - new Date(s.date_debut)) / 86400000));
+        if (s.type_tarif === 'MENSUEL') return s.montant * Math.max(1, Math.round(days / 30));
+        if (s.type_tarif === 'HEBDOMADAIRE') return s.montant * Math.max(1, Math.round(days / 7));
+        return s.montant * Math.max(1, days);
+      }
+      const totalDu = calcTotal(s);
+      const paye = data.transactions.filter(t => t.sejour_id === s.id && t.kind === 'IN').reduce((sum, t) => sum + t.amount, 0);
+      const solde = totalDu - paye;
+      const statut = paye <= 0 ? 'EN_ATTENTE' : solde <= 0.01 ? 'SOLDE' : 'PARTIEL';
+      if (statut === 'SOLDE') return null;
+      return {
+        sejour_id: s.id, locataire: s.locataire,
+        unit_label: unit.label || '?', property_name: prop.name || '?',
+        montant_total_du: totalDu, montant_paye: paye, solde_restant: Math.max(0, solde),
+        statut_paiement: statut,
+      };
+    })
+    .filter(Boolean);
+
   res.json({
     month, totalIn, totalOut,
     netCashflow: totalIn - totalOut,
     byCategory, byProperty, byUnit,
-    alertesLoyers, chart12,
+    alertesLoyers, alertesCautions, alertesPaiements, chart12,
     tauxOccupation: totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0,
     totalUnits, occupiedUnits,
     travauxOuverts, sejoursEnCours,

@@ -60,6 +60,19 @@ function load() {
             if (!u.permissions) u.permissions = [];
         });
 
+        // Migration caution + paiements partiels
+        data.sejours.forEach(s => {
+            if (!('caution_montant'          in s)) s.caution_montant           = 0;
+            if (!('caution_statut'           in s)) s.caution_statut            = 'AUCUNE';
+            if (!('caution_date'             in s)) s.caution_date              = null;
+            if (!('caution_date_restitution' in s)) s.caution_date_restitution  = null;
+            if (!('caution_montant_utilise'  in s)) s.caution_montant_utilise   = 0;
+            if (!('caution_notes'            in s)) s.caution_notes             = null;
+        });
+        data.transactions.forEach(t => {
+            if (!('sejour_id' in t)) t.sejour_id = null;
+        });
+
         return data;
     } catch { return JSON.parse(JSON.stringify(DEFAULT)); }
 }
