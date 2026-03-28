@@ -110,6 +110,7 @@ const PAGE_ROLES = {
     categories:   ['PROPRIETAIRE'],
     notes:        ['PROPRIETAIRE', 'GESTIONNAIRE', 'EMPLOYE'],
     users:        ['PROPRIETAIRE'],
+    paiements:    ['PROPRIETAIRE', 'GESTIONNAIRE'],
 };
 
 // Vérification d'accès combinée : rôle + permissions utilisateur
@@ -236,6 +237,7 @@ const PAGES = {
     notes: renderNotesPage,
     users: renderUsersPage,
     finance: renderFinancePage,
+    paiements: renderPaiementsPage,
 };
 
 function navigate(page) {

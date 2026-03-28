@@ -2455,3 +2455,38 @@ textarea.form-control {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* ── Suivi Paiements ───────────────────────────────────────────────────── */
+.suivi-filters { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:20px; }
+.suivi-tabs { display:flex; gap:4px; background:var(--bg-2); border-radius:8px; padding:4px; }
+.suivi-tab { padding:6px 14px; border-radius:6px; border:none; background:transparent; color:var(--text-2); font-size:13px; font-weight:500; cursor:pointer; transition:all .15s; }
+.suivi-tab.active { background:var(--accent); color:#fff; }
+.suivi-tab:hover:not(.active) { background:var(--bg-hover); color:var(--text-1); }
+.suivi-search { flex:1; min-width:180px; }
+
+.suivi-table { width:100%; border-collapse:collapse; }
+.suivi-table th { text-align:left; padding:10px 12px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--text-3); border-bottom:1px solid var(--border); }
+.suivi-table td { padding:12px; border-bottom:1px solid var(--border); font-size:13px; vertical-align:middle; }
+.suivi-table tr.client-row { cursor:pointer; transition:background .12s; }
+.suivi-table tr.client-row:hover { background:var(--bg-hover); }
+.suivi-table tr.client-row.expanded { background:var(--bg-2); }
+
+.suivi-avatar { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff; flex-shrink:0; }
+
+.suivi-expand-row td { padding:0; background:var(--bg-1); }
+.suivi-expand-inner { padding:16px 20px 20px; border-bottom:2px solid var(--border); }
+.suivi-sejour-list { width:100%; border-collapse:collapse; margin-top:8px; }
+.suivi-sejour-list th { font-size:11px; font-weight:600; color:var(--text-3); text-transform:uppercase; letter-spacing:.04em; padding:6px 10px; border-bottom:1px solid var(--border); text-align:left; }
+.suivi-sejour-list td { padding:8px 10px; font-size:12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+.suivi-sejour-list tr:last-child td { border-bottom:none; }
+
+.suivi-paiements-mini { margin-top:10px; font-size:12px; }
+.suivi-paiements-mini .mini-pmt { display:flex; gap:12px; padding:5px 0; border-bottom:1px solid var(--border); color:var(--text-2); }
+.suivi-paiements-mini .mini-pmt:last-child { border-bottom:none; }
+
+.solde-positive { color:var(--green); font-weight:700; }
+.solde-due { color:var(--red); font-weight:700; }
+
+.badge-red    { background:rgba(244,63,94,0.15);  color:var(--red);   border:1px solid rgba(244,63,94,0.25); }
+.badge-orange { background:rgba(245,158,11,0.15); color:var(--amber); border:1px solid rgba(245,158,11,0.25); }
+.badge-green  { background:rgba(16,185,129,0.15); color:var(--green); border:1px solid rgba(16,185,129,0.25); }

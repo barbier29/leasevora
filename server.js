@@ -41,6 +41,7 @@ app.use('/api/compteurs', require('./routes/compteurs'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/finance', require('./routes/finance'));
 app.use('/api/notes', require('./routes/notes'));
+app.use('/api/paiements', require('./routes/paiements'));
 
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
