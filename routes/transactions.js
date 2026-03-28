@@ -4,7 +4,7 @@ const { load, save, nextId } = require('../store');
 const { requireRole } = require('../middleware/auth');
 
 // Transactions financières — PROPRIETAIRE uniquement
-const MGR = requireRole(['PROPRIETAIRE']);
+const MGR = requireRole('PROPRIETAIRE');
 
 function enrich(t, data) {
     const cat = data.categories.find(c => c.id === t.category_id) || {};
@@ -43,21 +43,39 @@ router.get('/:id', MGR, (req, res) => {
 
 router.post('/', MGR, (req, res) => {
     const { date, description, kind, amount, category_id, property_id, unit_id, source, sejour_id } = req.body;
-    if (!date || !kind || !amount || !category_id || !property_id)
-        return res.status(400).json({ error: 'date, kind, amount, category_id, property_id requis' });
+    if (!date || !kind || !amount)
+        return res.status(400).json({ error: 'date, kind, amount requis' });
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0)
         return res.status(400).json({ error: 'Le montant doit être positif' });
     const data = load();
+
+    // Auto-dériver property_id et unit_id depuis le séjour si non fournis
+    let resolvedPropertyId = property_id ? Number(property_id) : null;
+    let resolvedUnitId = unit_id ? Number(unit_id) : null;
+    if (sejour_id) {
+        const sej = data.sejours.find(s => s.id === Number(sejour_id));
+        if (sej) {
+            if (!resolvedUnitId) resolvedUnitId = sej.unit_id || null;
+            if (!resolvedPropertyId && sej.unit_id) {
+                const u = data.units.find(u => u.id === sej.unit_id);
+                if (u) resolvedPropertyId = u.property_id || null;
+            }
+        }
+    }
+    // property_id obligatoire sauf si la transaction est liée à un séjour
+    if (!resolvedPropertyId && !sejour_id)
+        return res.status(400).json({ error: 'property_id requis (ou lier à un séjour)' });
+
     const txn = {
         id: nextId(data, 'transactions'),
         date,
         description: description || null,
         kind,
-        amount: Number(amount),
-        category_id: Number(category_id),
-        property_id: Number(property_id),
-        unit_id: unit_id ? Number(unit_id) : null,
+        amount: parsedAmount,
+        category_id: category_id ? Number(category_id) : null,
+        property_id: resolvedPropertyId,
+        unit_id: resolvedUnitId,
         sejour_id: sejour_id ? Number(sejour_id) : null,
         source: source || (kind === 'IN' ? 'BANQUE' : 'CAISSE'),
         created_at: new Date().toISOString(),

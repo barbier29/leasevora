@@ -363,6 +363,7 @@ async function renderSejoursPage(container) {
 
         <div class="form-actions" style="margin-top:20px">
             <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
+            ${solde.solde_restant > 0 ? `<button class="btn btn-primary" id="btn-add-paiement">💳 Enregistrer un paiement</button>` : ''}
         </div>
     `);
 
@@ -414,6 +415,55 @@ async function renderSejoursPage(container) {
           closeModal();
           load();
         } catch (e) { toast(e.message, 'error'); }
+      });
+    });
+
+    // Bouton enregistrer un paiement depuis le panel
+    document.getElementById('btn-add-paiement')?.addEventListener('click', () => {
+      const today = new Date().toISOString().slice(0, 10);
+      openModal(`
+        <div class="modal-header"><h3 class="modal-title">💳 Enregistrer un paiement</h3></div>
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:16px">${solde.locataire} — ${solde.unit_label}</div>
+        <form id="form-quick-pay">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Montant *</label>
+              <input class="form-control" id="qp-amount" type="number" min="0.01" step="0.01" value="${solde.solde_restant}" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date *</label>
+              <input class="form-control" id="qp-date" type="date" value="${today}" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <input class="form-control" id="qp-desc" type="text" value="Paiement — ${solde.unit_label}" />
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+            <button type="submit" class="btn btn-primary" id="qp-submit">Enregistrer</button>
+          </div>
+        </form>
+      `);
+      document.getElementById('form-quick-pay').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('qp-submit');
+        btn.disabled = true;
+        try {
+          await api('/transactions', {
+            method: 'POST',
+            body: {
+              kind: 'IN',
+              amount: parseFloat(document.getElementById('qp-amount').value),
+              date: document.getElementById('qp-date').value,
+              description: document.getElementById('qp-desc').value || null,
+              sejour_id: s.id,
+            },
+          });
+          toast('Paiement enregistré ✓');
+          closeModal();
+          load();
+        } catch (err) { toast(err.message, 'error'); btn.disabled = false; }
       });
     });
   }
