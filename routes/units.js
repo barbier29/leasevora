@@ -26,16 +26,23 @@ router.get('/:id', (req, res) => {
     res.json(withPropName(unit, data));
 });
 
+const VALID_UNIT_TYPES = ['APPARTEMENT','STUDIO','LOCAL_COMMERCIAL','MAISON','BUREAU','PARKING','AUTRE'];
+
 router.post('/', MGR, (req, res) => {
-    const { property_id, label, status, expected_rent } = req.body;
+    const { property_id, label, status, expected_rent, type, nb_pieces, surface, etage, description } = req.body;
     if (!property_id || !label) return res.status(400).json({ error: 'property_id et label requis' });
     const data = load();
     const unit = {
         id: nextId(data, 'units'),
         property_id: Number(property_id),
         label,
+        type: VALID_UNIT_TYPES.includes(type) ? type : 'APPARTEMENT',
         status: status || 'VACANT',
         expected_rent: expected_rent || 0,
+        nb_pieces: nb_pieces ? Number(nb_pieces) : null,
+        surface: surface ? Number(surface) : null,
+        etage: etage !== undefined && etage !== '' ? Number(etage) : null,
+        description: description || null,
         created_at: new Date().toISOString(),
     };
     data.units.push(unit);
@@ -44,11 +51,21 @@ router.post('/', MGR, (req, res) => {
 });
 
 router.put('/:id', MGR, (req, res) => {
-    const { label, status, expected_rent } = req.body;
+    const { label, status, expected_rent, type, nb_pieces, surface, etage, description } = req.body;
     const data = load();
     const idx = data.units.findIndex(u => u.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
-    data.units[idx] = { ...data.units[idx], label, status, expected_rent: expected_rent || 0 };
+    data.units[idx] = {
+        ...data.units[idx],
+        label,
+        type: VALID_UNIT_TYPES.includes(type) ? type : (data.units[idx].type || 'APPARTEMENT'),
+        status,
+        expected_rent: expected_rent || 0,
+        nb_pieces: nb_pieces ? Number(nb_pieces) : null,
+        surface: surface ? Number(surface) : null,
+        etage: etage !== undefined && etage !== '' ? Number(etage) : null,
+        description: description || null,
+    };
     save(data);
     res.json(data.units[idx]);
 });

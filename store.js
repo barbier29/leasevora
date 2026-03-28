@@ -73,6 +73,23 @@ function load() {
             if (!('sejour_id' in t)) t.sejour_id = null;
         });
 
+        // Migration spécifications unités
+        data.units.forEach(u => {
+            if (!('type'        in u)) u.type        = 'APPARTEMENT';
+            if (!('nb_pieces'   in u)) u.nb_pieces   = null;
+            if (!('surface'     in u)) u.surface     = null;
+            if (!('etage'       in u)) u.etage       = null;
+            if (!('description' in u)) u.description = null;
+        });
+
+        // Migration spécifications propriétés
+        data.properties.forEach(p => {
+            if (!('nb_etages'          in p)) p.nb_etages          = null;
+            if (!('annee_construction' in p)) p.annee_construction = null;
+            if (!('surface_totale'     in p)) p.surface_totale     = null;
+            if (!('description'        in p)) p.description        = null;
+        });
+
         return data;
     } catch { return JSON.parse(JSON.stringify(DEFAULT)); }
 }

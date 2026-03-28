@@ -27,7 +27,7 @@ router.get('/:id', (req, res) => {
 
 // POST create (PROPRIETAIRE + GESTIONNAIRE)
 router.post('/', MGR, (req, res) => {
-    const { name, type, address, solde_initial_caisse } = req.body;
+    const { name, type, address, solde_initial_caisse, nb_etages, annee_construction, surface_totale, description } = req.body;
     if (!name || !type) return res.status(400).json({ error: 'name et type requis' });
 
     const data = load();
@@ -37,6 +37,10 @@ router.post('/', MGR, (req, res) => {
         id: propId, name, type,
         address: address || null,
         solde_initial_caisse: Number(solde_initial_caisse) || 0,
+        nb_etages: nb_etages ? Number(nb_etages) : null,
+        annee_construction: annee_construction ? Number(annee_construction) : null,
+        surface_totale: surface_totale ? Number(surface_totale) : null,
+        description: description || null,
         created_at: now,
     };
     data.properties.push(prop);
@@ -52,7 +56,7 @@ router.post('/', MGR, (req, res) => {
 
 // PUT update (PROPRIETAIRE + GESTIONNAIRE)
 router.put('/:id', MGR, (req, res) => {
-    const { name, address, solde_initial_caisse } = req.body;
+    const { name, address, solde_initial_caisse, nb_etages, annee_construction, surface_totale, description } = req.body;
     const data = load();
     const id = Number(req.params.id);
     const idx = data.properties.findIndex(p => p.id === id);
@@ -62,6 +66,10 @@ router.put('/:id', MGR, (req, res) => {
         name,
         address: address || null,
         solde_initial_caisse: Number(solde_initial_caisse) || 0,
+        nb_etages: nb_etages ? Number(nb_etages) : null,
+        annee_construction: annee_construction ? Number(annee_construction) : null,
+        surface_totale: surface_totale ? Number(surface_totale) : null,
+        description: description || null,
     };
     save(data);
     res.json(data.properties[idx]);
