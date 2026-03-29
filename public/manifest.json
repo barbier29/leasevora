@@ -1,7 +1,7 @@
 {
-  "name": "Nestio",
-  "short_name": "Nestio",
-  "description": "Nestio — Gérez vos biens immobiliers",
+  "name": "Leasevora",
+  "short_name": "Leasevora",
+  "description": "Leasevora — Gérez vos biens immobiliers",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

@@ -21,6 +21,7 @@ const CURRENCIES = {
     MXN: { symbol: 'MX$', name: 'Peso Mexicain', after: false, decimals: 2 },
     XPF: { symbol: 'FCFP', name: 'Franc Pacifique', after: true, decimals: 0 },
 };
+window.CURRENCIES = CURRENCIES;
 window.CURR = CURRENCIES['EUR'];
 
 window.fmt = n => {
@@ -104,6 +105,7 @@ const PAGE_ROLES = {
     calendrier:   ['PROPRIETAIRE', 'GESTIONNAIRE', 'EMPLOYE'],
     transactions: ['PROPRIETAIRE'],
     caisse:       ['PROPRIETAIRE'],
+    comptes:      ['PROPRIETAIRE'],
     finance:      ['PROPRIETAIRE'],
     travaux:      ['PROPRIETAIRE', 'GESTIONNAIRE', 'EMPLOYE'],
     compteurs:    ['PROPRIETAIRE', 'GESTIONNAIRE', 'EMPLOYE'],
@@ -141,7 +143,7 @@ function showLogin(errorMsg) {
     }
     overlay.innerHTML = `
     <div class="login-card">
-      <div class="login-brand">🪹<span>Nestio</span></div>
+      <div class="login-brand">🪹<span>Leasevora</span></div>
       <h2 class="login-title">Connexion</h2>
       ${errorMsg ? `<div class="login-error">${errorMsg}</div>` : ''}
       <form id="login-form">
@@ -155,7 +157,7 @@ function showLogin(errorMsg) {
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px">Se connecter</button>
       </form>
-      <p style="margin-top:18px;text-align:center;font-size:11px;color:var(--text-3)">Nestio v3.0.0</p>
+      <p style="margin-top:18px;text-align:center;font-size:11px;color:var(--text-3)">Leasevora v1.0.0</p>
     </div>`;
     overlay.style.display = 'flex';
 
@@ -231,6 +233,7 @@ const PAGES = {
     calendrier: renderCalendrierPage,
     transactions: renderTransactionsPage,
     caisse: renderCaissePage,
+    comptes: renderComptesPage,
     travaux: renderTravauxPage,
     compteurs: renderCompteursPage,
     categories: renderCategoriesPage,

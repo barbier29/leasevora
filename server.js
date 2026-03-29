@@ -10,9 +10,19 @@ const { seedAdmin, requireAuth } = require('./middleware/auth');
 seedAdmin();
 
 const app = express();
-app.use(cors());
+const corsOptions = process.env.NODE_ENV === 'production'
+    ? { origin: process.env.ALLOWED_ORIGIN || false, credentials: true }
+    : { origin: true, credentials: true };
+app.use(cors(corsOptions));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+    etag: false,
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.js') || filePath.endsWith('.html') || filePath.endsWith('.css')) {
+            res.setHeader('Cache-Control', 'no-store');
+        }
+    }
+}));
 
 app.use((_req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -35,6 +45,7 @@ app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/sejours', require('./routes/sejours'));
 app.use('/api/caisse', require('./routes/caisse'));
+app.use('/api/comptes', require('./routes/comptes'));
 app.use('/api/locataires', require('./routes/locataires'));
 app.use('/api/travaux', require('./routes/travaux'));
 app.use('/api/compteurs', require('./routes/compteurs'));
@@ -54,5 +65,5 @@ if (!process.env.JWT_SECRET) {
 }
 
 app.listen(PORT, () => {
-    console.log(`\n🏢  PropManager disponible sur http://localhost:${PORT}\n`);
+    console.log(`\n🏢  Leasevora disponible sur http://localhost:${PORT}\n`);
 });

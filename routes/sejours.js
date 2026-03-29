@@ -134,18 +134,50 @@ router.patch('/:id/caution', MGR, (req, res) => {
     res.json(enrich(s, data));
 });
 
-// POST create — tous les rôles
-router.post('/', (req, res) => {
-    const { unit_id, locataire, locataire_id, date_debut, date_fin,
+// POST create — tous les rôles authentifiés
+router.post('/', requireAuth, (req, res) => {
+    const { unit_id, date_debut, date_fin,
             heure_entree, heure_sortie, type_tarif, montant, statut, notes,
             caution_montant, caution_date } = req.body;
-    if (!unit_id || !locataire || !date_debut || !type_tarif || !montant)
+    let locataire = req.body.locataire;
+    let locataire_id = req.body.locataire_id;
+
+    const needsAutoCreate = req.body.create_locataire && !locataire_id && req.body.nom_locataire;
+    if (!unit_id || (!locataire && !needsAutoCreate) || !date_debut || !type_tarif || !montant)
         return res.status(400).json({ error: 'unit_id, locataire, date_debut, type_tarif, montant requis' });
+    if (isNaN(Date.parse(date_debut)))
+        return res.status(400).json({ error: 'date_debut invalide' });
+    if (date_fin) {
+        if (isNaN(Date.parse(date_fin)))
+            return res.status(400).json({ error: 'date_fin invalide' });
+        if (new Date(date_fin) <= new Date(date_debut))
+            return res.status(400).json({ error: 'date_fin doit être postérieure à date_debut' });
+    }
     const parsedMontant = parseFloat(montant);
     if (isNaN(parsedMontant) || parsedMontant <= 0)
         return res.status(400).json({ error: 'Le montant doit être positif' });
 
     const data = load();
+
+    // Auto-create locataire if requested
+    if (req.body.create_locataire && !locataire_id && req.body.nom_locataire) {
+        const newLoc = {
+            id: nextId(data, 'locataires'),
+            nom: req.body.nom_locataire,
+            prenom: req.body.prenom_locataire || null,
+            email: req.body.email_locataire || null,
+            telephone: req.body.telephone_locataire || null,
+            num_piece_identite: null,
+            type_piece: null,
+            caution: Number(req.body.caution_montant) || 0,
+            notes: null,
+            created_at: new Date().toISOString(),
+        };
+        data.locataires.push(newLoc);
+        locataire_id = newLoc.id;
+        if (!locataire) locataire = [req.body.prenom_locataire, req.body.nom_locataire].filter(Boolean).join(' ');
+    }
+
     const cautMontant = caution_montant ? Number(caution_montant) : 0;
     const sejour = {
         id: nextId(data, 'sejours'),
@@ -173,11 +205,19 @@ router.post('/', (req, res) => {
     res.status(201).json(enrich(sejour, data));
 });
 
-// PUT update — tous les rôles
-router.put('/:id', (req, res) => {
+// PUT update — tous les rôles authentifiés
+router.put('/:id', requireAuth, (req, res) => {
     const { unit_id, locataire, locataire_id, date_debut, date_fin,
             heure_entree, heure_sortie, type_tarif, montant, statut, notes,
             caution_montant, caution_date } = req.body;
+    if (date_debut && isNaN(Date.parse(date_debut)))
+        return res.status(400).json({ error: 'date_debut invalide' });
+    if (date_fin) {
+        if (isNaN(Date.parse(date_fin)))
+            return res.status(400).json({ error: 'date_fin invalide' });
+        if (date_debut && new Date(date_fin) <= new Date(date_debut))
+            return res.status(400).json({ error: 'date_fin doit être postérieure à date_debut' });
+    }
     const parsedMontant = parseFloat(montant);
     if (isNaN(parsedMontant) || parsedMontant <= 0)
         return res.status(400).json({ error: 'Le montant doit être positif' });

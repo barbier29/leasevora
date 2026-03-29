@@ -42,12 +42,16 @@ router.get('/:id', MGR, (req, res) => {
 });
 
 router.post('/', MGR, (req, res) => {
-    const { date, description, kind, amount, category_id, property_id, unit_id, source, sejour_id } = req.body;
+    const { date, description, kind, amount, category_id, property_id, unit_id, source, sejour_id, compte_id } = req.body;
     if (!date || !kind || !amount)
         return res.status(400).json({ error: 'date, kind, amount requis' });
+    if (isNaN(Date.parse(date)))
+        return res.status(400).json({ error: 'Date invalide' });
+    if (!['IN', 'OUT'].includes(kind))
+        return res.status(400).json({ error: 'kind doit être IN ou OUT' });
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0)
-        return res.status(400).json({ error: 'Le montant doit être positif' });
+        return res.status(400).json({ error: 'Le montant doit être un nombre positif' });
     const data = load();
 
     // Auto-dériver property_id et unit_id depuis le séjour si non fournis
@@ -77,7 +81,13 @@ router.post('/', MGR, (req, res) => {
         property_id: resolvedPropertyId,
         unit_id: resolvedUnitId,
         sejour_id: sejour_id ? Number(sejour_id) : null,
-        source: source || (kind === 'IN' ? 'BANQUE' : 'CAISSE'),
+        compte_id: compte_id ? Number(compte_id) : (kind === 'IN' ? 1 : 1),
+        source: (() => {
+            if (source) return source;
+            // Déduire depuis le compte (utiliser data déjà chargé)
+            const c = (data.comptes || []).find(c => c.id === (compte_id ? Number(compte_id) : 1));
+            return c?.type || 'CAISSE';
+        })(),
         created_at: new Date().toISOString(),
     };
     data.transactions.push(txn);
@@ -86,7 +96,7 @@ router.post('/', MGR, (req, res) => {
 });
 
 router.put('/:id', MGR, (req, res) => {
-    const { date, description, kind, amount, category_id, property_id, unit_id, source, sejour_id } = req.body;
+    const { date, description, kind, amount, category_id, property_id, unit_id, source, sejour_id, compte_id } = req.body;
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0)
         return res.status(400).json({ error: 'Le montant doit être positif' });
@@ -101,7 +111,13 @@ router.put('/:id', MGR, (req, res) => {
         property_id: Number(property_id),
         unit_id: unit_id ? Number(unit_id) : null,
         sejour_id: sejour_id ? Number(sejour_id) : (data.transactions[idx].sejour_id || null),
-        source: source || data.transactions[idx].source || 'BANQUE',
+        compte_id: compte_id ? Number(compte_id) : (data.transactions[idx].compte_id || 1),
+        source: (() => {
+            if (source) return source;
+            // Déduire depuis le compte (utiliser data déjà chargé)
+            const c = (data.comptes || []).find(c => c.id === (compte_id ? Number(compte_id) : (data.transactions[idx].compte_id || 1)));
+            return c?.type || data.transactions[idx].source || 'CAISSE';
+        })(),
     };
     save(data);
     res.json(enrich(data.transactions[idx], data));

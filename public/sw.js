@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nestio-v1';
+const CACHE_NAME = 'leasevora-v1';
 
 const STATIC_ASSETS = [
   '/',
