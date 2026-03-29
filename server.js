@@ -53,6 +53,8 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/finance', require('./routes/finance'));
 app.use('/api/notes', require('./routes/notes'));
 app.use('/api/paiements', require('./routes/paiements'));
+app.use('/api/search', require('./routes/search'));
+app.use('/api/activite', require('./routes/activite').router);
 
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));

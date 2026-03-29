@@ -63,7 +63,14 @@ async function renderSejoursPage(container) {
       <div class="card">
         <table>
           <thead><tr>
-            <th>Locataire</th><th>Fiche</th><th>Appartement</th><th>Propriété</th><th>Type</th><th>Arrivée</th><th>Départ</th><th>Durée</th><th>Tarif</th><th>Total dû</th><th>Payé</th><th>Paiement</th><th>Caution</th><th>Statut</th><th></th>
+            <th>Locataire</th>
+            <th>Bien</th>
+            <th>Période</th>
+            <th>Tarif</th>
+            <th>Total dû</th>
+            <th>Paiement</th>
+            <th>Statut</th>
+            <th></th>
           </tr></thead>
           <tbody>
             ${sejours.length ? sejours.map(s => {
@@ -71,61 +78,190 @@ async function renderSejoursPage(container) {
       const loc = locs.find(l => l.id === s.locataire_id);
       const paiSt = PAIEMENT_STATUTS[s.statut_paiement || 'EN_ATTENTE'];
       const cauSt = CAUTION_STATUTS[s.caution_statut] || CAUTION_STATUTS['AUCUNE'];
-      return `<tr>
-                <td><strong>${s.locataire}</strong>${s.notes ? `<br><small class="text-muted">${s.notes}</small>` : ''}</td>
-                <td>${loc ? `<button class="btn btn-ghost btn-sm view-loc-sej" data-locid="${loc.id}">👤</button>` : '<span class="text-muted">—</span>'}</td>
-                <td class="text-muted">${s.unit_label}</td>
-                <td class="text-muted">${s.property_name}</td>
+      return `<tr class="sej-row" data-id="${s.id}" style="cursor:pointer">
+                <td>
+                  <strong>${s.locataire}</strong>
+                  ${loc ? `<div style="font-size:11px;color:var(--text-3)">${loc.prenom ? loc.prenom + ' ' : ''}${loc.nom}${loc.telephone ? ' · ' + loc.telephone : ''}</div>` : ''}
+                </td>
+                <td class="text-muted" style="font-size:12px">
+                  ${s.unit_label}<br><span style="font-size:11px">${s.property_name}</span>
+                </td>
+                <td class="text-muted" style="font-size:12px;white-space:nowrap">
+                  ${fmtDate(s.date_debut)}<br>${s.date_fin ? fmtDate(s.date_fin) : '—'}
+                </td>
                 <td><span class="badge badge-${s.type_tarif === 'JOURNALIER' ? 'standalone' : s.type_tarif === 'FORFAIT' ? 'vacant' : 'building'}">${TARIFS[s.type_tarif] || s.type_tarif}</span></td>
-                <td class="text-muted">${fmtDate(s.date_debut)}</td>
-                <td class="text-muted">${s.date_fin ? fmtDate(s.date_fin) : '—'}</td>
-                <td class="text-muted">${duree(s)}</td>
-                <td class="amount-in">${s.type_tarif === 'FORFAIT' ? `${fmtMoney(s.montant)} <span style="font-size:10px;font-weight:400;opacity:.6">total</span>` : `${fmtMoney(s.montant)}/${s.type_tarif === 'JOURNALIER' ? 'j' : 'mois'}`}</td>
-                <td class="amount-in">${fmtMoney(s.montant_total_du || totalSejour(s))}</td>
-                <td class="amount-in">${fmtMoney(s.montant_paye || 0)}</td>
-                <td><span class="badge ${paiSt.cls}">${paiSt.label}${s.solde_restant > 0 ? `<br><small>${fmtMoney(s.solde_restant)} restant</small>` : ''}</span></td>
-                <td><span class="badge ${cauSt.cls}">${s.caution_montant > 0 ? fmtMoney(s.caution_montant) + '<br>' : ''}${s.caution_montant > 0 ? cauSt.label : '—'}</span></td>
+                <td style="white-space:nowrap">
+                  <div class="amount-in">${fmtMoney(s.montant_total_du || totalSejour(s))}</div>
+                  <div style="font-size:11px;color:var(--text-3)">${duree(s)}</div>
+                </td>
+                <td>
+                  <span class="badge ${paiSt.cls}">${paiSt.label}</span>
+                  ${(s.solde_restant || 0) > 0 ? `<div style="font-size:11px;color:var(--red);margin-top:2px">${fmtMoney(s.solde_restant)} restant</div>` : ''}
+                </td>
                 <td><span class="badge ${st.cls}">${st.label}</span></td>
                 <td style="text-align:right;white-space:nowrap">
-                  <button class="btn btn-ghost btn-sm paiement-btn" data-id="${s.id}">💰</button>
-                  <button class="btn btn-ghost btn-sm edit-sej-btn" data-id="${s.id}">Modifier</button>
                   <button class="btn btn-danger btn-sm del-sej-btn" data-id="${s.id}" data-name="${s.locataire}">✕</button>
                 </td>
               </tr>`;
     }).join('')
-        : '<tr><td colspan="15"><div class="empty-state"><div class="empty-icon">🛏️</div><p>Aucun séjour enregistré.</p></div></td></tr>'}
+        : '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🛏️</div><p>Aucun séjour enregistré.</p></div></td></tr>'}
           </tbody>
         </table>
       </div>
     `;
 
     document.getElementById('add-sejour-btn').addEventListener('click', () => showForm(null, units, props, locs));
-    container.querySelectorAll('.edit-sej-btn').forEach(btn =>
-      btn.addEventListener('click', () => showForm(sejours.find(s => s.id == btn.dataset.id), units, props, locs)));
     container.querySelectorAll('.del-sej-btn').forEach(btn =>
       btn.addEventListener('click', async () => {
         if (!confirm(`Supprimer le séjour de "${btn.dataset.name}" ?`)) return;
         try { await api(`/sejours/${btn.dataset.id}`, { method: 'DELETE' }); toast('Séjour supprimé'); load(); }
         catch (e) { toast(e.message, 'error'); }
       }));
-    container.querySelectorAll('.paiement-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const s = sejours.find(x => x.id == btn.dataset.id);
-        if (s) openPaiementPanel(s);
+    container.querySelectorAll('.sej-row').forEach(row => {
+      row.addEventListener('click', e => {
+        if (e.target.closest('button')) return;
+        const s = sejours.find(x => x.id == row.dataset.id);
+        if (s) openSejourDetail(s, units, locs, () => load());
       });
     });
-    container.querySelectorAll('.view-loc-sej').forEach(btn =>
-      btn.addEventListener('click', async () => {
-        const l = await api(`/locataires/${btn.dataset.locid}`);
-        openModal(`
-          <div class="modal-title">👤 ${l.prenom ? l.prenom + ' ' : ''}${l.nom}</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-            ${[['📞', l.telephone || '—'], ['📧', l.email || '—'], ['💰 Caution', l.caution > 0 ? fmtMoney(l.caution) : '—'], ['📝 Notes', l.notes || '—']]
-            .map(([k, v]) => `<div><div style="font-size:11px;color:var(--text-3)">${k}</div><div style="font-size:13px">${v}</div></div>`).join('')}
+  }
+
+  async function openSejourDetail(s, units, locs, onRefresh) {
+    const loc = locs.find(l => l.id === s.locataire_id);
+    const paiSt = PAIEMENT_STATUTS[s.statut_paiement || 'EN_ATTENTE'];
+    const soldeRestant = s.solde_restant || 0;
+    const totalDu = s.montant_total_du || 0;
+    const montantPaye = s.montant_paye || 0;
+
+    openModal(`
+      <div class="modal-title">🛏️ ${s.locataire}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+        <div><div style="font-size:11px;color:var(--text-3)">Appartement</div><strong>${s.unit_label}</strong></div>
+        <div><div style="font-size:11px;color:var(--text-3)">Propriété</div><span>${s.property_name}</span></div>
+        <div><div style="font-size:11px;color:var(--text-3)">Arrivée</div><span>${fmtDate(s.date_debut)}${s.heure_entree ? ' ' + s.heure_entree : ''}</span></div>
+        <div><div style="font-size:11px;color:var(--text-3)">Départ</div><span>${s.date_fin ? fmtDate(s.date_fin) + (s.heure_sortie ? ' ' + s.heure_sortie : '') : '—'}</span></div>
+      </div>
+
+      <!-- Bloc paiement -->
+      <div style="background:var(--bg-2);border-radius:8px;padding:14px;margin-bottom:16px;border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:12px">PAIEMENT</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--text-3)">Total dû</div>
+            <div style="font-size:16px;font-weight:700">${fmtMoney(totalDu)}</div>
           </div>
-          <div class="form-actions"><button class="btn btn-ghost" onclick="closeModal()">Fermer</button></div>
-        `);
-      }));
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--text-3)">Payé</div>
+            <div style="font-size:16px;font-weight:700;color:var(--green)">${fmtMoney(montantPaye)}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--text-3)">Solde restant</div>
+            <div style="font-size:16px;font-weight:700;color:${soldeRestant > 0 ? 'var(--red)' : 'var(--green)'}">${fmtMoney(soldeRestant)}</div>
+          </div>
+        </div>
+        <div style="margin-bottom:10px"><span class="badge ${paiSt.cls}">${paiSt.label}</span></div>
+
+        ${soldeRestant > 0 ? `
+        <div style="border-top:1px solid var(--border);padding-top:12px">
+          <div style="font-size:12px;font-weight:600;margin-bottom:10px">Enregistrer un paiement</div>
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+            <div style="flex:1;min-width:100px">
+              <label style="font-size:11px;color:var(--text-3);display:block;margin-bottom:4px">Montant</label>
+              <input class="form-control" id="pay-amount" type="number" min="0" step="0.01" value="${soldeRestant}" style="height:36px" />
+            </div>
+            <div style="flex:1;min-width:100px">
+              <label style="font-size:11px;color:var(--text-3);display:block;margin-bottom:4px">Date</label>
+              <input class="form-control" id="pay-date" type="date" value="${new Date().toISOString().slice(0,10)}" style="height:36px" />
+            </div>
+            <div style="flex:1;min-width:100px">
+              <label style="font-size:11px;color:var(--text-3);display:block;margin-bottom:4px">Compte</label>
+              <select class="form-control" id="pay-compte" style="height:36px;font-size:13px">
+                <!-- rempli dynamiquement -->
+              </select>
+            </div>
+            <button class="btn btn-primary" id="pay-btn" style="height:36px;white-space:nowrap">💰 Encaisser</button>
+          </div>
+        </div>` : `<div style="color:var(--green);font-size:13px;font-weight:600;padding-top:4px">✓ Séjour intégralement soldé</div>`}
+      </div>
+
+      ${loc ? `<div style="padding:10px;background:var(--bg-2);border-radius:6px;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <span>👤 <strong>${loc.prenom ? loc.prenom + ' ' : ''}${loc.nom}</strong></span>
+        ${loc.telephone ? `<span class="text-muted">${loc.telephone}</span>` : ''}
+        ${loc.email ? `<span class="text-muted">${loc.email}</span>` : ''}
+      </div>` : ''}
+
+      <div class="form-actions">
+        <button class="btn btn-danger btn-sm" id="del-sej-det">🗑</button>
+        ${s.statut === 'TERMINE' ? `<button class="btn btn-ghost btn-sm" id="renouveler-sej-det">🔄 Renouveler</button>` : ''}
+        <button class="btn btn-ghost btn-sm" id="print-quittance-btn">🖨️ Quittance</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
+        <button class="btn btn-ghost" id="edit-sej-det">✏️ Modifier</button>
+      </div>
+    `);
+
+    // Charger les comptes pour le sélecteur
+    try {
+      const comptes = await api('/comptes');
+      const sel = document.getElementById('pay-compte');
+      if (sel) {
+        comptes.filter(c => c.actif).forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = `${c.type === 'CAISSE' ? '🏦' : '🏛️'} ${c.nom}`;
+          sel.appendChild(opt);
+        });
+      }
+    } catch {}
+
+    document.getElementById('edit-sej-det').addEventListener('click', () => {
+      closeModal();
+      showForm(s, units, [], locs);
+    });
+
+    document.getElementById('del-sej-det').addEventListener('click', async () => {
+      if (!confirm(`Supprimer ce séjour ?`)) return;
+      try { await api(`/sejours/${s.id}`, { method: 'DELETE' }); toast('Séjour supprimé'); closeModal(); onRefresh(); }
+      catch (e) { toast(e.message, 'error'); }
+    });
+
+    document.getElementById('print-quittance-btn')?.addEventListener('click', () => {
+      window.printQuittance(s.id);
+    });
+
+    document.getElementById('renouveler-sej-det')?.addEventListener('click', async () => {
+      try {
+        const data = await api(`/sejours/${s.id}/renouveler`, { method: 'POST' });
+        closeModal();
+        // pré-remplir le formulaire de création avec les données du séjour précédent
+        const fakeNew = { ...data, id: null };
+        showForm(fakeNew, units, [], locs);
+      } catch (e) { toast(e.message, 'error'); }
+    });
+
+    const payBtn = document.getElementById('pay-btn');
+    if (payBtn) {
+      payBtn.addEventListener('click', async () => {
+        const amount = parseFloat(document.getElementById('pay-amount').value);
+        const date = document.getElementById('pay-date').value;
+        if (!amount || amount <= 0) return toast('Montant invalide', 'error');
+        const unit = units.find(u => u.id === s.unit_id) || {};
+        try {
+          await api('/transactions', { method: 'POST', body: {
+            date,
+            description: `Loyer — ${s.locataire}`,
+            kind: 'IN',
+            amount,
+            property_id: unit.property_id || null,
+            unit_id: s.unit_id || null,
+            sejour_id: s.id,
+            compte_id: parseInt(document.getElementById('pay-compte')?.value) || 1,
+          }});
+          toast('Paiement enregistré');
+          closeModal();
+          onRefresh();
+        } catch (e) { toast(e.message, 'error'); }
+      });
+    }
   }
 
   function showForm(sej = null, units = [], props = [], locs = []) {
@@ -143,17 +279,48 @@ async function renderSejoursPage(container) {
     openModal(`
       <div class="modal-title">${isEdit ? 'Modifier le séjour' : 'Nouveau séjour'}</div>
       <form id="sej-form">
-        <div class="form-row">
+        <!-- Section locataire -->
+        <div style="background:var(--bg-2);border-radius:8px;padding:14px;margin-bottom:16px;border:1px solid var(--border)">
+          <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:12px">LOCATAIRE</div>
+
+          <!-- Sélection fiche existante OU création nouveau -->
           <div class="form-group">
-            <label class="form-label">Nom affiché du locataire *</label>
-            <input class="form-control" id="f-loc" value="${sej?.locataire || ''}" placeholder="ex. Jean Dupont" required />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Fiche locataire (optionnel)</label>
+            <label class="form-label">Fiche locataire existante</label>
             <select class="form-control" id="f-locid">
-              <option value="">— Aucune fiche liée —</option>
-              ${locs.map(l => `<option value="${l.id}" ${sej?.locataire_id == l.id ? 'selected' : ''}>${l.prenom ? l.prenom + ' ' : ''}${l.nom}</option>`).join('')}
+              <option value="">— Nouveau locataire —</option>
+              ${locs.map(l => `<option value="${l.id}" ${sej?.locataire_id == l.id ? 'selected' : ''}>${l.prenom ? l.prenom + ' ' : ''}${l.nom}${l.telephone ? ' · ' + l.telephone : ''}</option>`).join('')}
             </select>
+          </div>
+
+          <!-- Bloc nouveau locataire (visible si aucune fiche sélectionnée) -->
+          <div id="f-new-loc-block">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Prénom *</label>
+                <input class="form-control" id="f-prenom" value="${sej?.locataire?.split(' ')[0] || ''}" placeholder="ex. Jean" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nom *</label>
+                <input class="form-control" id="f-nom" value="${sej?.locataire?.split(' ').slice(1).join(' ') || ''}" placeholder="ex. Dupont" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Téléphone</label>
+                <input class="form-control" id="f-tel-loc" type="tel" placeholder="ex. +225 07 00 00 00" />
+              </div>
+              <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:2px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+                  <input type="checkbox" id="f-create-loc" checked style="width:15px;height:15px;accent-color:var(--accent)" />
+                  <span>Créer la fiche locataire automatiquement</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Résumé fiche sélectionnée (visible si fiche choisie) -->
+          <div id="f-existing-loc-info" style="display:none;padding:10px;background:var(--bg-3);border-radius:6px;font-size:13px">
+            <!-- rempli par JS -->
           </div>
         </div>
         <div class="form-row">
@@ -231,12 +398,25 @@ async function renderSejoursPage(container) {
       </form>
     `);
 
-    // Auto-fill name from fiche locataire
-    document.getElementById('f-locid').addEventListener('change', e => {
-      if (!e.target.value) return;
-      const l = locs.find(l => l.id == e.target.value);
-      if (l) document.getElementById('f-loc').value = `${l.prenom ? l.prenom + ' ' : ''}${l.nom}`;
-    });
+    // Toggle nouveau locataire vs fiche existante
+    const locidSel = document.getElementById('f-locid');
+    const newLocBlock = document.getElementById('f-new-loc-block');
+    const existingLocInfo = document.getElementById('f-existing-loc-info');
+
+    function updateLocDisplay() {
+      const val = locidSel.value;
+      if (val) {
+        const l = locs.find(l => l.id == val);
+        newLocBlock.style.display = 'none';
+        existingLocInfo.style.display = '';
+        existingLocInfo.innerHTML = `👤 <strong>${l.prenom ? l.prenom + ' ' : ''}${l.nom}</strong>${l.telephone ? ` · ${l.telephone}` : ''}${l.email ? ` · ${l.email}` : ''}`;
+      } else {
+        newLocBlock.style.display = '';
+        existingLocInfo.style.display = 'none';
+      }
+    }
+    locidSel.addEventListener('change', updateLocDisplay);
+    updateLocDisplay();
 
     // Dynamic label for montant based on tarif type
     const tarifSel = document.getElementById('f-tarif');
@@ -270,10 +450,21 @@ async function renderSejoursPage(container) {
       }
       errEl.textContent = '';
 
+      const locidVal = document.getElementById('f-locid').value;
+      const prenomVal = document.getElementById('f-prenom')?.value?.trim() || '';
+      const nomVal = document.getElementById('f-nom')?.value?.trim() || '';
+      const createLoc = document.getElementById('f-create-loc')?.checked && !locidVal;
+
       const body = {
         unit_id: document.getElementById('f-unit').value,
-        locataire: document.getElementById('f-loc').value.trim(),
-        locataire_id: document.getElementById('f-locid').value ? parseInt(document.getElementById('f-locid').value) : null,
+        locataire: locidVal
+          ? (() => { const l = locs.find(l => l.id == locidVal); return l ? `${l.prenom ? l.prenom + ' ' : ''}${l.nom}` : ''; })()
+          : `${prenomVal} ${nomVal}`.trim(),
+        locataire_id: locidVal ? parseInt(locidVal) : null,
+        create_locataire: createLoc,
+        prenom_locataire: createLoc ? prenomVal : undefined,
+        nom_locataire: createLoc ? nomVal : undefined,
+        telephone_locataire: createLoc ? (document.getElementById('f-tel-loc')?.value?.trim() || null) : undefined,
         date_debut: document.getElementById('f-debut').value,
         date_fin: document.getElementById('f-fin').value || null,
         heure_entree: document.getElementById('f-heure-entree').value || null,
@@ -470,3 +661,111 @@ async function renderSejoursPage(container) {
 
   await load();
 }
+
+// ── Quittance de loyer ──────────────────────────────────────────────────────
+window.printQuittance = async function(sejourId) {
+  try {
+    const d = await api(`/sejours/${sejourId}/quittance`);
+    const user = window.CURRENT_USER;
+    const signataire = user ? ((user.prenom || '') + ' ' + (user.nom || user.login || '')).trim() : 'Gestionnaire';
+    const s = d.sejour;
+    const loc = d.locataire;
+    const unit = d.unit;
+    const prop = d.property;
+
+    const locNom = loc ? ((loc.prenom || '') + ' ' + loc.nom).trim() : (s.locataire || '—');
+    const locTel = loc?.telephone || '';
+
+    const paiementsRows = d.paiements.length
+      ? d.paiements.map(p => `<tr>
+          <td>${new Date(p.date).toLocaleDateString('fr-FR')}</td>
+          <td>${p.description || 'Paiement'}</td>
+          <td style="text-align:right;font-weight:600;color:#059669">${fmtMoney(p.amount)}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="3" style="text-align:center;color:#888">Aucun paiement enregistré</td></tr>';
+
+    const html = `
+      <style>
+        body { font-family: system-ui, sans-serif; padding: 32px; color: #111; max-width: 680px; margin: auto; }
+        h1 { font-size: 24px; font-weight: 700; text-align: center; letter-spacing: 2px; margin-bottom: 4px; }
+        .sous-titre { text-align: center; font-size: 13px; color: #555; margin-bottom: 32px; border-bottom: 2px solid #111; padding-bottom: 16px; }
+        .section { margin-bottom: 20px; }
+        .section-title { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #888; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; font-size: 13px; }
+        .info-label { color: #666; font-size: 11px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 13px; }
+        th { text-align: left; padding: 8px; border-bottom: 2px solid #ddd; background: #f9f9f9; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+        td { padding: 8px; border-bottom: 1px solid #eee; }
+        .total-row { font-weight: 700; font-size: 15px; }
+        .attestation { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 6px; padding: 16px; font-size: 13px; line-height: 1.6; margin-top: 24px; }
+        .signature-block { margin-top: 32px; display: flex; justify-content: flex-end; }
+        .signature-line { text-align: center; }
+        .sig-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+        .sig-date { font-size: 11px; color: #666; margin-bottom: 32px; }
+        .sig-bar { border-top: 1px solid #333; width: 200px; margin: 0 auto; padding-top: 6px; font-size: 11px; color: #666; }
+        @media print { body { padding: 16px; } }
+      </style>
+
+      <h1>QUITTANCE DE LOYER</h1>
+      <div class="sous-titre">
+        Période : ${new Date(s.date_debut).toLocaleDateString('fr-FR')} au ${s.date_fin ? new Date(s.date_fin).toLocaleDateString('fr-FR') : '—'} &nbsp;|&nbsp;
+        Émise le : ${new Date().toLocaleDateString('fr-FR')}
+      </div>
+
+      <div class="section">
+        <div class="section-title">Bailleur / Propriété</div>
+        <div class="info-grid">
+          <div><div class="info-label">Propriété</div><strong>${prop.name || '—'}</strong></div>
+          <div><div class="info-label">Adresse</div>${prop.address || '—'}</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Locataire</div>
+        <div class="info-grid">
+          <div><div class="info-label">Nom complet</div><strong>${locNom}</strong></div>
+          <div><div class="info-label">Téléphone</div>${locTel || '—'}</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Appartement</div>
+        <div class="info-grid">
+          <div><div class="info-label">Unité</div><strong>${unit.label || '—'}</strong></div>
+          <div><div class="info-label">Type</div>${unit.type || '—'}${unit.surface ? ' · ' + unit.surface + ' m²' : ''}</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Détail des paiements</div>
+        <table>
+          <thead><tr><th>Date</th><th>Description</th><th style="text-align:right">Montant</th></tr></thead>
+          <tbody>
+            ${paiementsRows}
+            <tr class="total-row" style="background:#f0fdf4">
+              <td colspan="2" style="color:#059669">Total payé</td>
+              <td style="text-align:right;color:#059669">${fmtMoney(d.total_paye)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="attestation">
+        Je soussigné(e), <strong>${signataire}</strong>, gestionnaire, atteste avoir reçu la somme de
+        <strong>${fmtMoney(d.total_paye)}</strong> correspondant au loyer de la période
+        du ${new Date(s.date_debut).toLocaleDateString('fr-FR')} au ${s.date_fin ? new Date(s.date_fin).toLocaleDateString('fr-FR') : '—'}.
+      </div>
+
+      <div class="signature-block">
+        <div class="signature-line">
+          <div class="sig-name">${signataire}</div>
+          <div class="sig-date">${new Date().toLocaleDateString('fr-FR')}</div>
+          <div class="sig-bar">Signature</div>
+        </div>
+      </div>
+    `;
+    printSection('Quittance de loyer — ' + locNom, html);
+  } catch (e) {
+    toast('Erreur quittance : ' + e.message, 'error');
+  }
+};

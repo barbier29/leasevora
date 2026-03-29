@@ -28,7 +28,10 @@ async function renderDashboardPage(container) {
           <div class="stat-card">
             <div class="stat-label">Taux d'occupation</div>
             <div class="stat-value purple">${d.tauxOccupation}%</div>
-            <div style="font-size:11px;color:var(--text-3);margin-top:2px">${d.occupiedUnits} / ${d.totalUnits} appts</div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:2px">${d.occupiedUnits} / ${d.totalUnits} unités</div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill" style="width:${d.tauxOccupation}%"></div>
+            </div>
           </div>
           <div class="stat-card">
             <div class="stat-label">Séjours en cours</div>
@@ -82,7 +85,10 @@ async function renderDashboardPage(container) {
         <div class="stat-card">
           <div class="stat-label">Taux d'occupation</div>
           <div class="stat-value purple">${d.tauxOccupation}%</div>
-          <div style="font-size:11px;color:var(--text-3);margin-top:2px">${d.occupiedUnits} / ${d.totalUnits} appts</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:2px">${d.occupiedUnits} / ${d.totalUnits} unités</div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" style="width:${d.tauxOccupation}%"></div>
+          </div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Travaux en cours</div>
@@ -233,6 +239,22 @@ async function renderDashboardPage(container) {
     }).join('') : '<tr><td colspan="6" class="text-muted" style="text-align:center;padding:20px">Aucun appartement.</td></tr>'}
         </tbody></table>
       </div>
+
+      ${d.sejoursBientotFinis?.length ? `
+      <div class="card" style="margin-top:20px">
+        <div class="card-header"><span class="card-title">⏳ Fins de séjour dans 7 jours</span></div>
+        ${d.sejoursBientotFinis.map(s => `
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
+            <div>
+              <div style="font-weight:600;font-size:13px">${s.locataire}</div>
+              <div style="font-size:11px;color:var(--text-3)">${s.unit_label} · ${s.property_name}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:12px;font-weight:600;color:var(--amber)">${fmtDate(s.date_fin)}</div>
+              <div style="font-size:10px;color:var(--text-3)">dans ${s.jours_restants}j</div>
+            </div>
+          </div>`).join('')}
+      </div>` : ''}
     `;
 
     // Chart.js — 12 mois
@@ -273,16 +295,63 @@ async function renderDashboardPage(container) {
 
     document.getElementById('dash-month').addEventListener('change', e => load(e.target.value));
     document.getElementById('export-dashboard-btn').addEventListener('click', () => {
-      const rows = d.byProperty.map(p => `<tr>
-        <td>${p.name}</td><td>${p.type}</td>
-        <td class="in">${fmtMoney(p.total_in)}</td>
-        <td class="out">${fmtMoney(p.total_out)}</td>
-        <td class="${(p.total_in - p.total_out) >= 0 ? 'in' : 'out'}">${(p.total_in - p.total_out) >= 0 ? '+' : ''}${fmtMoney(p.total_in - p.total_out)}</td>
-      </tr>`).join('');
-      printSection(`Rapport du mois ${d.month}`,
-        `<p>Recettes : <strong>${fmtMoney(d.totalIn)}</strong> — Dépenses : <strong>${fmtMoney(d.totalOut)}</strong> — Net : <strong>${fmtMoney(d.netCashflow)}</strong></p>
-        <table><thead><tr><th>Propriété</th><th>Type</th><th>Recettes</th><th>Dépenses</th><th>Net</th></tr></thead><tbody>${rows}</tbody></table>`
-      );
+      const user = window.CURRENT_USER;
+      const signataire = user ? ((user.prenom || '') + ' ' + (user.nom || user.login || '')).trim() : 'Gestionnaire';
+      const html = `
+        <style>
+          body { font-family: system-ui, sans-serif; padding: 24px; color: #111; }
+          h1 { font-size: 22px; margin-bottom: 4px; }
+          .subtitle { color: #666; font-size: 14px; margin-bottom: 24px; }
+          .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+          .kpi { background: #f5f5f5; border-radius: 8px; padding: 16px; text-align: center; }
+          .kpi-label { font-size: 11px; text-transform: uppercase; color: #666; margin-bottom: 4px; }
+          .kpi-value { font-size: 22px; font-weight: 700; }
+          .green { color: #059669; } .red { color: #dc2626; } .blue { color: #2563eb; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
+          th { text-align: left; padding: 8px; border-bottom: 2px solid #ddd; background: #f9f9f9; }
+          td { padding: 8px; border-bottom: 1px solid #eee; }
+          .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #ddd; font-size: 12px; color: #666; display: flex; justify-content: space-between; }
+          .signature-block { margin-top: 32px; }
+          .signature-line { border-top: 1px solid #333; width: 200px; margin-top: 32px; padding-top: 4px; font-size: 12px; }
+          .alert-row { background: #fff3f3; }
+        </style>
+        <h1>Rapport mensuel — ${d.month}</h1>
+        <div class="subtitle">Leasevora · Généré le ${new Date().toLocaleDateString('fr-FR')} par ${signataire}</div>
+
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-label">Recettes</div><div class="kpi-value green">${fmtMoney(d.totalIn)}</div></div>
+          <div class="kpi"><div class="kpi-label">Dépenses</div><div class="kpi-value red">${fmtMoney(d.totalOut)}</div></div>
+          <div class="kpi"><div class="kpi-label">Flux net</div><div class="kpi-value ${d.netCashflow >= 0 ? 'green' : 'red'}">${d.netCashflow >= 0 ? '+' : ''}${fmtMoney(d.netCashflow)}</div></div>
+          <div class="kpi"><div class="kpi-label">Taux d'occupation</div><div class="kpi-value blue">${d.tauxOccupation}%</div></div>
+          <div class="kpi"><div class="kpi-label">Séjours en cours</div><div class="kpi-value">${d.sejoursEnCours || 0}</div></div>
+          <div class="kpi"><div class="kpi-label">Loyers en retard</div><div class="kpi-value ${d.alertesLoyers?.length > 0 ? 'red' : 'green'}">${d.alertesLoyers?.length || 0}</div></div>
+        </div>
+
+        ${d.alertesLoyers?.length > 0 ? `
+        <h2 style="font-size:15px;margin-bottom:8px;color:#dc2626">⚠️ Loyers impayés (${d.alertesLoyers.length})</h2>
+        <table>
+          <thead><tr><th>Locataire</th><th>Propriété / Appt</th><th>Loyer attendu</th></tr></thead>
+          <tbody>${d.alertesLoyers.map(a => `<tr class="alert-row"><td>${a.locataire || '—'}</td><td>${a.property_name} — ${a.unit_label}</td><td style="color:#dc2626;font-weight:600">${fmtMoney(a.expected_rent)}</td></tr>`).join('')}</tbody>
+        </table>` : ''}
+
+        ${d.byCategory?.length ? `
+        <h2 style="font-size:15px;margin-bottom:8px">Recettes par catégorie</h2>
+        <table>
+          <thead><tr><th>Catégorie</th><th style="text-align:right">Montant</th></tr></thead>
+          <tbody>${d.byCategory.filter(c=>c.kind==='IN'&&c.total>0).map(c=>`<tr><td>${c.category}</td><td style="text-align:right;color:#059669;font-weight:600">${fmtMoney(c.total)}</td></tr>`).join('')}</tbody>
+        </table>
+        <h2 style="font-size:15px;margin-bottom:8px">Dépenses par catégorie</h2>
+        <table>
+          <thead><tr><th>Catégorie</th><th style="text-align:right">Montant</th></tr></thead>
+          <tbody>${d.byCategory.filter(c=>c.kind==='OUT'&&c.total>0).map(c=>`<tr><td>${c.category}</td><td style="text-align:right;color:#dc2626;font-weight:600">${fmtMoney(c.total)}</td></tr>`).join('')}</tbody>
+        </table>` : ''}
+
+        <div class="signature-block">
+          <p style="font-size:13px">Je soussigné(e) <strong>${signataire}</strong>, certifie l'exactitude des données financières présentées dans ce rapport.</p>
+          <div class="signature-line">${signataire}<br>${new Date().toLocaleDateString('fr-FR')}</div>
+        </div>
+      `;
+      printSection('Rapport mensuel — ' + d.month, html);
     });
   }
 

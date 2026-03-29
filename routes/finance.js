@@ -3,7 +3,7 @@ const router = express.Router();
 const { load } = require('../store');
 const { requireRole } = require('../middleware/auth');
 
-const MGR = requireRole(['PROPRIETAIRE']);
+const MGR = requireRole('PROPRIETAIRE');
 
 /**
  * GET /api/finance/income-statement

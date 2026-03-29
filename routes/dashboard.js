@@ -142,11 +142,47 @@ router.get('/', (req, res) => {
     })
     .filter(Boolean);
 
+  // ── Séjours se terminant dans 7 jours ────────────────────────────────────
+  const in7days = new Date(); in7days.setDate(in7days.getDate() + 7);
+  const sejoursBientotFinis = data.sejours
+    .filter(s => s.statut === 'EN_COURS' && s.date_fin)
+    .filter(s => {
+      const fin = new Date(s.date_fin);
+      return fin >= now && fin <= in7days;
+    })
+    .map(s => {
+      const unit = data.units.find(u => u.id === s.unit_id) || {};
+      const prop = data.properties.find(p => p.id === unit.property_id) || {};
+      const joursRestants = Math.ceil((new Date(s.date_fin) - now) / 86400000);
+      return {
+        sejour_id: s.id, locataire: s.locataire,
+        unit_label: unit.label || '?', property_name: prop.name || '?',
+        date_fin: s.date_fin, jours_restants: joursRestants,
+      };
+    })
+    .sort((a, b) => a.jours_restants - b.jours_restants);
+
+  // ── Historique 6 mois ─────────────────────────────────────────────────────
+  const hist6m = [];
+  for (let i = 5; i >= 0; i--) {
+    const d2 = new Date(); d2.setMonth(d2.getMonth() - i);
+    const m = `${d2.getFullYear()}-${String(d2.getMonth()+1).padStart(2,'0')}`;
+    const txM = data.transactions.filter(t => t.date && t.date.startsWith(m));
+    hist6m.push({
+      month: m,
+      label: d2.toLocaleDateString('fr-FR', {month:'short', year:'2-digit'}),
+      total_in: txM.filter(t=>t.kind==='IN').reduce((s,t)=>s+t.amount,0),
+      total_out: txM.filter(t=>t.kind==='OUT').reduce((s,t)=>s+t.amount,0),
+    });
+  }
+
   res.json({
     month, totalIn, totalOut,
     netCashflow: totalIn - totalOut,
     byCategory, byProperty, byUnit,
     alertesLoyers, alertesCautions, alertesPaiements, chart12,
+    historique6mois: hist6m,
+    sejoursBientotFinis,
     tauxOccupation: totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0,
     totalUnits, occupiedUnits,
     travauxOuverts, sejoursEnCours,

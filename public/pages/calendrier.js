@@ -10,11 +10,11 @@ window.setCalViewMode = setCalViewMode;
 
 // ── Couleurs par statut de séjour ─────────────────────────────────────────────
 const SEJOUR_STATUS_COLORS = {
-    EN_COURS:  { bg: 'rgba(16,185,129,0.25)',  border: '#10b981', text: '#34d399', label: 'En cours' },
-    A_VENIR:   { bg: 'rgba(99,102,241,0.2)',   border: '#6366f1', text: '#a5b4fc', label: 'À venir' },
-    CONFIRME:  { bg: 'rgba(99,102,241,0.15)',  border: '#6366f1', text: '#a5b4fc', label: 'Confirmé' },
-    TERMINE:   { bg: 'rgba(99,102,241,0.06)',  border: '#404663', text: '#4e5a72', label: 'Terminé' },
-    ANNULE:    { bg: 'rgba(244,63,94,0.1)',    border: '#f43f5e', text: '#fb7185', label: 'Annulé' },
+    EN_COURS:  { bg: 'rgba(16,185,129,0.35)',  border: '#10b981', text: '#ecfdf5', label: 'En cours' },
+    A_VENIR:   { bg: 'rgba(99,102,241,0.35)',  border: '#818cf8', text: '#e0e7ff', label: 'À venir' },
+    CONFIRME:  { bg: 'rgba(99,102,241,0.30)',  border: '#818cf8', text: '#e0e7ff', label: 'Confirmé' },
+    TERMINE:   { bg: 'rgba(148,163,184,0.18)', border: '#64748b', text: '#94a3b8', label: 'Terminé' },
+    ANNULE:    { bg: 'rgba(244,63,94,0.25)',   border: '#f43f5e', text: '#fda4af', label: 'Annulé' },
 };
 
 function getSejourEffectiveStatus(sejour) {
@@ -102,7 +102,7 @@ async function renderCalendrierPage(container) {
   }
 
   // ── Open séjour detail popup ─────────────────────────────────────────────
-  function openSejourDetail(sejour) {
+  async function openSejourDetail(sejour) {
     const statusLabel = { A_VENIR: 'À venir', EN_COURS: 'En cours', TERMINE: 'Terminé', ANNULE: 'Annulé' };
     const loc = _locs.find(l => l.id === sejour.locataire_id);
     openModal(`
@@ -125,12 +125,87 @@ async function renderCalendrierPage(container) {
           ${loc.email ? `<span class="text-muted">${loc.email}</span>` : ''}
         </div>` : ''}
       </div>
+      <!-- Bloc paiement -->
+      <div style="background:var(--bg-2);border-radius:8px;padding:14px;margin-bottom:16px;border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:10px">PAIEMENT</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+          <div style="text-align:center">
+            <div style="font-size:10px;color:var(--text-3)">Total dû</div>
+            <div style="font-size:15px;font-weight:700">${fmtMoney(sejour.montant_total_du || 0)}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:10px;color:var(--text-3)">Payé</div>
+            <div style="font-size:15px;font-weight:700;color:var(--green)">${fmtMoney(sejour.montant_paye || 0)}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:10px;color:var(--text-3)">Restant</div>
+            <div style="font-size:15px;font-weight:700;color:${(sejour.solde_restant || 0) > 0 ? 'var(--red)' : 'var(--green)'}">${fmtMoney(sejour.solde_restant || 0)}</div>
+          </div>
+        </div>
+        ${(sejour.solde_restant || 0) > 0 ? `
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+          <div style="flex:1;min-width:80px">
+            <label style="font-size:10px;color:var(--text-3);display:block;margin-bottom:3px">Montant</label>
+            <input class="form-control" id="cal-pay-amount" type="number" min="0" step="0.01" value="${sejour.solde_restant || ''}" style="height:34px;font-size:13px" />
+          </div>
+          <div style="flex:1;min-width:80px">
+            <label style="font-size:10px;color:var(--text-3);display:block;margin-bottom:3px">Date</label>
+            <input class="form-control" id="cal-pay-date" type="date" value="${new Date().toISOString().slice(0,10)}" style="height:34px;font-size:13px" />
+          </div>
+          <div style="flex:1;min-width:80px">
+            <label style="font-size:10px;color:var(--text-3);display:block;margin-bottom:3px">Compte</label>
+            <select class="form-control" id="cal-pay-compte" style="height:34px;font-size:12px">
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" id="cal-pay-btn" style="height:34px;white-space:nowrap;padding:0 12px">💰 Encaisser</button>
+        </div>` : `<div style="color:var(--green);font-size:13px;font-weight:600">✓ Soldé</div>`}
+      </div>
       <div class="form-actions">
         <button class="btn btn-danger btn-sm" id="del-sej-modal">🗑 Supprimer</button>
+        <button class="btn btn-ghost btn-sm" id="print-quittance-cal-btn">🖨️ Quittance</button>
         <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
         <button class="btn btn-primary" id="edit-sej-modal">✏️ Modifier</button>
       </div>
     `);
+
+    // Charger les comptes pour le sélecteur
+    try {
+      const comptes = await api('/comptes');
+      const sel = document.getElementById('cal-pay-compte');
+      if (sel) {
+        comptes.filter(c => c.actif).forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = `${c.type === 'CAISSE' ? '🏦' : '🏛️'} ${c.nom}`;
+          sel.appendChild(opt);
+        });
+      }
+    } catch {}
+
+    const calPayBtn = document.getElementById('cal-pay-btn');
+    if (calPayBtn) {
+      calPayBtn.addEventListener('click', async () => {
+        const amount = parseFloat(document.getElementById('cal-pay-amount').value);
+        const date = document.getElementById('cal-pay-date').value;
+        if (!amount || amount <= 0) return toast('Montant invalide', 'error');
+        const unit = _units.find(u => u.id === sejour.unit_id) || {};
+        try {
+          await api('/transactions', { method: 'POST', body: {
+            date,
+            description: `Loyer — ${sejour.locataire}`,
+            kind: 'IN',
+            amount,
+            property_id: unit.property_id || null,
+            unit_id: sejour.unit_id || null,
+            sejour_id: sejour.id,
+            compte_id: parseInt(document.getElementById('cal-pay-compte')?.value) || 1,
+          }});
+          toast('Paiement enregistré');
+          closeModal();
+          await reload();
+        } catch (e) { toast(e.message, 'error'); }
+      });
+    }
     document.getElementById('del-sej-modal').addEventListener('click', async () => {
       if (!confirm(`Supprimer le séjour de "${sejour.locataire}" ?`)) return;
       try { await api(`/sejours/${sejour.id}`, { method: 'DELETE' }); toast('Séjour supprimé'); closeModal(); await reload(); }
@@ -139,6 +214,10 @@ async function renderCalendrierPage(container) {
     document.getElementById('edit-sej-modal').addEventListener('click', () => {
       closeModal();
       openSejourForm(null, null, sejour);
+    });
+
+    document.getElementById('print-quittance-cal-btn')?.addEventListener('click', () => {
+      window.printQuittance(sejour.id);
     });
   }
 

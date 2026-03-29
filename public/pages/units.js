@@ -77,7 +77,7 @@ async function renderUnitsPage(container) {
 
   function showForm(unit = null, props = []) {
     const isEdit = !!unit;
-    const sym = window.CURR?.symbol || '€';
+    const sym = window.CURR.symbol;
     const UNIT_TYPES = {
       APPARTEMENT:      'Appartement',
       STUDIO:           'Studio',
@@ -126,11 +126,9 @@ async function renderUnitsPage(container) {
           </div>
         </div>
         <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);margin:16px 0 10px">Spécifications</div>
+
+        <!-- Champs communs -->
         <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Nb de pièces</label>
-            <input class="form-control" id="f-pieces" type="number" min="0" step="1" value="${unit?.nb_pieces ?? ''}" placeholder="ex. 3" />
-          </div>
           <div class="form-group">
             <label class="form-label">Surface (m²)</label>
             <input class="form-control" id="f-surface" type="number" min="0" step="0.1" value="${unit?.surface ?? ''}" placeholder="ex. 65" />
@@ -138,6 +136,42 @@ async function renderUnitsPage(container) {
           <div class="form-group" id="f-etage-group">
             <label class="form-label">Étage</label>
             <input class="form-control" id="f-etage" type="number" step="1" value="${unit?.etage ?? ''}" placeholder="ex. 2" />
+          </div>
+          <div class="form-group" id="f-pieces-group">
+            <label class="form-label">Nb de pièces</label>
+            <input class="form-control" id="f-pieces" type="number" min="0" step="1" value="${unit?.nb_pieces ?? ''}" placeholder="ex. 3" />
+          </div>
+        </div>
+
+        <!-- Champs résidentiels (APPARTEMENT, STUDIO, MAISON) -->
+        <div id="f-residential-group">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nb de chambres</label>
+              <input class="form-control" id="f-chambres" type="number" min="0" step="1" value="${unit?.nb_chambres ?? ''}" placeholder="ex. 2" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nb salles de bain</label>
+              <input class="form-control" id="f-sdb" type="number" min="0" step="1" value="${unit?.nb_sdb ?? ''}" placeholder="ex. 1" />
+            </div>
+          </div>
+          <div class="form-row" style="gap:16px;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+              <input type="checkbox" id="f-meuble" ${unit?.meuble ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--accent)" />
+              Meublé
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+              <input type="checkbox" id="f-balcon" ${unit?.balcon ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--accent)" />
+              Balcon / Terrasse
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+              <input type="checkbox" id="f-cave" ${unit?.cave ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--accent)" />
+              Cave
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+              <input type="checkbox" id="f-parking-inclus" ${unit?.parking_inclus ? 'checked' : ''} style="width:16px;height:16px;accent-color:var(--accent)" />
+              Parking inclus
+            </label>
           </div>
         </div>
         <div class="form-group">
@@ -151,14 +185,22 @@ async function renderUnitsPage(container) {
       </form>
     `);
 
-    // Masquer "Étage" pour parking
     const typeEl = document.getElementById('f-type');
     const etageGroup = document.getElementById('f-etage-group');
-    function updateEtageVisibility() {
-      etageGroup.style.display = typeEl.value === 'PARKING' ? 'none' : '';
+    const piecesGroup = document.getElementById('f-pieces-group');
+    const residentialGroup = document.getElementById('f-residential-group');
+
+    function updateTypeFields() {
+      const t = typeEl.value;
+      const isParking = t === 'PARKING';
+      const isResidential = ['APPARTEMENT', 'STUDIO', 'MAISON'].includes(t);
+
+      etageGroup.style.display = isParking ? 'none' : '';
+      piecesGroup.style.display = isParking ? 'none' : '';
+      residentialGroup.style.display = isResidential ? '' : 'none';
     }
-    updateEtageVisibility();
-    typeEl.addEventListener('change', updateEtageVisibility);
+    updateTypeFields();
+    typeEl.addEventListener('change', updateTypeFields);
 
     document.getElementById('unit-form').addEventListener('submit', async e => {
       e.preventDefault();
@@ -168,10 +210,16 @@ async function renderUnitsPage(container) {
         type:        document.getElementById('f-type').value,
         status:      document.getElementById('f-status').value,
         expected_rent: parseFloat(document.getElementById('f-rent').value) || 0,
-        nb_pieces:   document.getElementById('f-pieces').value || null,
-        surface:     document.getElementById('f-surface').value || null,
-        etage:       document.getElementById('f-etage').value !== '' ? document.getElementById('f-etage').value : null,
-        description: document.getElementById('f-desc').value.trim() || null,
+        nb_pieces:      document.getElementById('f-pieces').value || null,
+        surface:        document.getElementById('f-surface').value || null,
+        etage:          document.getElementById('f-etage').value !== '' ? document.getElementById('f-etage').value : null,
+        description:    document.getElementById('f-desc').value.trim() || null,
+        nb_chambres:    document.getElementById('f-chambres')?.value || null,
+        nb_sdb:         document.getElementById('f-sdb')?.value || null,
+        meuble:         document.getElementById('f-meuble')?.checked || false,
+        balcon:         document.getElementById('f-balcon')?.checked || false,
+        cave:           document.getElementById('f-cave')?.checked || false,
+        parking_inclus: document.getElementById('f-parking-inclus')?.checked || false,
       };
       try {
         if (isEdit) {
@@ -187,4 +235,17 @@ async function renderUnitsPage(container) {
   }
 
   await load();
+
+    // Auto-open edit modal if coming from property view
+    if (window.__pendingEditUnit) {
+      const pendingId = window.__pendingEditUnit;
+      window.__pendingEditUnit = null;
+      // Wait for render then open edit form
+      setTimeout(async () => {
+        try {
+          const [unit, props] = await Promise.all([api(`/units/${pendingId}`), api('/properties')]);
+          showForm(unit, props);
+        } catch {}
+      }, 100);
+    }
 }

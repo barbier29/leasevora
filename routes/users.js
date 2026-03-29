@@ -54,7 +54,7 @@ router.put('/:id', requireRole('PROPRIETAIRE'), (req, res) => {
 });
 
 // PATCH /:id/permissions — mise à jour des permissions uniquement
-router.patch('/:id/permissions', requireRole(['PROPRIETAIRE']), (req, res) => {
+router.patch('/:id/permissions', requireRole('PROPRIETAIRE'), (req, res) => {
     const d = load();
     const target = d.users.find(u => u.id === parseInt(req.params.id));
     if (!target) return res.status(404).json({ error: 'Utilisateur non trouvé' });

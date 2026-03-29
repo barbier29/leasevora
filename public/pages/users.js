@@ -57,7 +57,7 @@ async function renderUsersPage(container) {
           <div class="form-group" style="margin:0;display:flex;align-items:center;gap:12px">
             <label class="form-label" style="margin:0;white-space:nowrap">💱 Devise :</label>
             <select class="form-control" id="currency-sel" style="width:200px">
-              ${currencyOptions || Object.entries({ EUR: { name: 'Euro', symbol: '€' }, USD: { name: 'Dollar US', symbol: '$' }, XOF: { name: 'Franc CFA', symbol: 'FCFA' } }).map(([code, c]) => `<option value="${code}" ${settings.currency === code ? 'selected' : ''}>${c.name} (${c.symbol})</option>`).join('')}
+              ${currencyOptions}
             </select>
           </div>
           <div class="form-group" style="margin:0;display:flex;align-items:center;gap:12px">

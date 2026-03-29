@@ -1,4 +1,7 @@
 async function renderTransactionsPage(container) {
+  let _allTxns = [];
+  let _props = [], _cats = [], _units = [], _sejours = [];
+
   async function load() {
     try {
       const [txns, props, cats, units, sejours] = await Promise.all([
@@ -8,55 +11,55 @@ async function renderTransactionsPage(container) {
         api('/units'),
         api('/sejours').catch(() => []),
       ]);
+      _allTxns = txns;
+      _props = props; _cats = cats; _units = units; _sejours = sejours;
       render(txns, props, cats, units, sejours);
     } catch (e) {
       container.innerHTML = `<p class="text-muted">${e.message}</p>`;
     }
   }
 
+  function applyFilters() {
+    const kind = document.getElementById('filter-kind')?.value || '';
+    const cat = document.getElementById('filter-cat')?.value || '';
+    const minVal = parseFloat(document.getElementById('filter-min')?.value) || 0;
+    const maxVal = parseFloat(document.getElementById('filter-max')?.value) || Infinity;
+    const filtered = _allTxns.filter(t => {
+      if (kind && t.kind !== kind) return false;
+      if (cat && String(t.category_id) !== cat) return false;
+      if (t.amount < minVal) return false;
+      if (t.amount > maxVal) return false;
+      return true;
+    });
+    renderTable(filtered);
+  }
+
   const SOURCE_LABEL = { CAISSE: '🏦 Caisse', BANQUE: '🏛️ Banque' };
 
-  function render(txns, props, cats, units, sejours) {
-    container.innerHTML = `
-      <div class="page-header">
-        <div>
-          <div class="page-title">Transactions</div>
-          <div class="page-subtitle">${txns.length} transaction${txns.length !== 1 ? 's' : ''}</div>
-        </div>
-        <button class="btn btn-primary" id="add-txn-btn">+ Ajouter une transaction</button>
-      </div>
-      <div class="card">
-        <table>
-          <thead><tr>
-            <th>Date</th><th>Description</th><th>Type</th><th>Source</th><th>Catégorie</th><th>Propriété</th><th>Appartement</th><th class="text-right">Montant</th><th></th>
-          </tr></thead>
-          <tbody>
-            ${txns.length ? txns.map(t => `
-              <tr>
-                <td class="text-muted">${fmtDate(t.date)}</td>
-                <td>${t.description || '—'}</td>
-                <td><span class="badge badge-${t.kind.toLowerCase()}">${t.kind === 'IN' ? 'Recette' : 'Dépense'}</span></td>
-                <td><span class="badge ${t.source === 'CAISSE' ? 'badge-building' : 'badge-standalone'}">${SOURCE_LABEL[t.source] || t.source}</span></td>
-                <td class="text-muted">${t.category_name}</td>
-                <td class="text-muted">${t.property_name}</td>
-                <td class="text-muted">${t.unit_label || '<span style="font-style:italic;color:var(--text-3)">Tout l\'immeuble</span>'}${t.sejour_id ? `<br><small style="color:var(--accent);font-size:10px">🔗 Séjour #${t.sejour_id}</small>` : ''}</td>
-                <td class="text-right ${t.kind === 'IN' ? 'amount-in' : 'amount-out'}">${t.kind === 'IN' ? '+' : '-'}${fmtMoney(t.amount)}</td>
-                <td style="text-align:right;white-space:nowrap">
-                  <button class="btn btn-ghost btn-sm edit-txn-btn" data-id="${t.id}">Modifier</button>
-                  <button class="btn btn-danger btn-sm del-txn-btn" data-id="${t.id}">✕</button>
-                </td>
-              </tr>`).join('')
-        : '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💸</div><p>Aucune transaction.</p></div></td></tr>'}
-          </tbody>
-        </table>
-      </div>
-    `;
+  function renderTable(txns) {
+    const tbody = document.getElementById('txn-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = txns.length ? txns.map(t => `
+      <tr>
+        <td class="text-muted">${fmtDate(t.date)}</td>
+        <td>${t.description || '—'}</td>
+        <td><span class="badge badge-${t.kind.toLowerCase()}">${t.kind === 'IN' ? 'Recette' : 'Dépense'}</span></td>
+        <td><span class="badge ${t.source === 'CAISSE' ? 'badge-building' : 'badge-standalone'}">${SOURCE_LABEL[t.source] || t.source}</span></td>
+        <td class="text-muted">${t.category_name}</td>
+        <td class="text-muted">${t.property_name}</td>
+        <td class="text-muted">${t.unit_label || '<span style="font-style:italic;color:var(--text-3)">Tout l\'immeuble</span>'}${t.sejour_id ? `<br><small style="color:var(--accent);font-size:10px">🔗 Séjour #${t.sejour_id}</small>` : ''}</td>
+        <td class="text-right ${t.kind === 'IN' ? 'amount-in' : 'amount-out'}">${t.kind === 'IN' ? '+' : '-'}${fmtMoney(t.amount)}</td>
+        <td style="text-align:right;white-space:nowrap">
+          <button class="btn btn-ghost btn-sm edit-txn-btn" data-id="${t.id}">Modifier</button>
+          <button class="btn btn-danger btn-sm del-txn-btn" data-id="${t.id}">✕</button>
+        </td>
+      </tr>`).join('')
+      : '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💸</div><p>Aucune transaction.</p></div></td></tr>';
 
-    document.getElementById('add-txn-btn').addEventListener('click', () => showForm(null, props, cats, units, sejours));
-    container.querySelectorAll('.edit-txn-btn').forEach(btn => {
-      btn.addEventListener('click', () => showForm(txns.find(t => t.id == btn.dataset.id), props, cats, units, sejours));
+    tbody.querySelectorAll('.edit-txn-btn').forEach(btn => {
+      btn.addEventListener('click', () => showForm(_allTxns.find(t => t.id == btn.dataset.id), _props, _cats, _units, _sejours));
     });
-    container.querySelectorAll('.del-txn-btn').forEach(btn => {
+    tbody.querySelectorAll('.del-txn-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         if (!confirm('Supprimer cette transaction ?')) return;
         try {
@@ -64,6 +67,48 @@ async function renderTransactionsPage(container) {
           toast('Transaction supprimée'); load();
         } catch (e) { toast(e.message, 'error'); }
       });
+    });
+  }
+
+  function render(txns, props, cats, units, sejours) {
+    const catOptions = cats.map(c => `<option value="${c.id}">${c.kind === 'IN' ? '↑' : '↓'} ${c.name}</option>`).join('');
+    container.innerHTML = `
+      <div class="page-header">
+        <div>
+          <div class="page-title">Transactions</div>
+          <div class="page-subtitle">${txns.length} transaction${txns.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select class="form-control" id="filter-kind" style="width:130px;height:36px">
+            <option value="">Ent. &amp; Sort.</option>
+            <option value="IN">Entrées</option>
+            <option value="OUT">Sorties</option>
+          </select>
+          <select class="form-control" id="filter-cat" style="width:190px;height:36px">
+            <option value="">Toutes catégories</option>
+            ${catOptions}
+          </select>
+          <input class="form-control" id="filter-min" type="number" placeholder="Min" style="width:90px;height:36px" />
+          <input class="form-control" id="filter-max" type="number" placeholder="Max" style="width:90px;height:36px" />
+          <button class="btn btn-primary" id="add-txn-btn">+ Ajouter</button>
+        </div>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr>
+            <th>Date</th><th>Description</th><th>Type</th><th>Source</th><th>Catégorie</th><th>Propriété</th><th>Appartement</th><th class="text-right">Montant</th><th></th>
+          </tr></thead>
+          <tbody id="txn-tbody"></tbody>
+        </table>
+      </div>
+    `;
+
+    renderTable(txns);
+
+    document.getElementById('add-txn-btn').addEventListener('click', () => showForm(null, props, cats, units, sejours));
+    ['filter-kind','filter-cat','filter-min','filter-max'].forEach(id => {
+      document.getElementById(id)?.addEventListener('input', applyFilters);
+      document.getElementById(id)?.addEventListener('change', applyFilters);
     });
   }
 
@@ -100,7 +145,7 @@ async function renderTransactionsPage(container) {
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Montant (${window.CURR?.symbol || '€'}) *</label>
+            <label class="form-label">Montant (${window.CURR.symbol}) *</label>
             <input class="form-control" id="f-amount" type="number" min="0" step="0.01" value="${txn?.amount || ''}" required />
           </div>
         </div>

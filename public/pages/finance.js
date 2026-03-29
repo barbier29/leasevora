@@ -599,7 +599,7 @@ async function renderFinancePage(container) {
         }
     }
 
-    const curr = window.CURR?.symbol || '€';
+    const curr = window.CURR.symbol;
     const companyName = 'Nestio — Gestion Immobilière';
     const genDate = new Date().toLocaleDateString('fr-FR');
 

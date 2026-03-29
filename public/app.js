@@ -221,7 +221,86 @@ async function bootApp(user) {
 
     // Navigate to current hash
     onHashChange();
+
+    // Init global search
+    initGlobalSearch();
 }
+
+// ── Global Search ──────────────────────────────────────────────────────────
+function initGlobalSearch() {
+    const input = document.getElementById('global-search');
+    const dropdown = document.getElementById('search-results');
+    if (!input) return;
+    let timeout;
+    input.addEventListener('input', () => {
+        clearTimeout(timeout);
+        const q = input.value.trim();
+        if (q.length < 2) { dropdown.classList.add('hidden'); return; }
+        timeout = setTimeout(async () => {
+            try {
+                const r = await api('/search?q=' + encodeURIComponent(q));
+                renderSearchResults(r, dropdown);
+            } catch {}
+        }, 250);
+    });
+    document.addEventListener('click', e => {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+}
+
+function renderSearchResults(r, dropdown) {
+    const sections = [];
+    if (r.properties?.length) {
+        sections.push(`<div class="search-section-label">Propriétés</div>`);
+        r.properties.forEach(p => {
+            sections.push(`<div class="search-result-item" data-page="properties">
+              <span class="search-result-icon">🏢</span>
+              <div><div class="search-result-main">${p.name}</div><div class="search-result-sub">${p.type === 'BUILDING' ? 'Immeuble' : 'Bien indépendant'}</div></div>
+            </div>`);
+        });
+    }
+    if (r.units?.length) {
+        sections.push(`<div class="search-section-label">Appartements</div>`);
+        r.units.forEach(u => {
+            sections.push(`<div class="search-result-item" data-page="units">
+              <span class="search-result-icon">🚪</span>
+              <div><div class="search-result-main">${u.label}</div><div class="search-result-sub">${u.property_name}</div></div>
+            </div>`);
+        });
+    }
+    if (r.locataires?.length) {
+        sections.push(`<div class="search-section-label">Locataires</div>`);
+        r.locataires.forEach(l => {
+            sections.push(`<div class="search-result-item" data-page="locataires">
+              <span class="search-result-icon">👤</span>
+              <div><div class="search-result-main">${l.prenom || ''} ${l.nom}</div><div class="search-result-sub">${l.telephone || ''}</div></div>
+            </div>`);
+        });
+    }
+    if (r.sejours?.length) {
+        sections.push(`<div class="search-section-label">Séjours</div>`);
+        r.sejours.forEach(s => {
+            sections.push(`<div class="search-result-item" data-page="sejours">
+              <span class="search-result-icon">🛏️</span>
+              <div><div class="search-result-main">${s.locataire}</div><div class="search-result-sub">${s.unit_label} · ${s.statut}</div></div>
+            </div>`);
+        });
+    }
+    if (!sections.length) {
+        sections.push(`<div style="padding:16px;text-align:center;color:var(--text-3);font-size:13px">Aucun résultat</div>`);
+    }
+    dropdown.innerHTML = sections.join('');
+    dropdown.classList.remove('hidden');
+    dropdown.querySelectorAll('.search-result-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const page = item.dataset.page;
+            if (page) { location.hash = page; dropdown.classList.add('hidden'); document.getElementById('global-search').value = ''; }
+        });
+    });
+}
+window.initGlobalSearch = initGlobalSearch;
 
 // ── Router ─────────────────────────────────────────────────────────────────
 const PAGES = {

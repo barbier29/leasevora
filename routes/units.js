@@ -29,7 +29,8 @@ router.get('/:id', (req, res) => {
 const VALID_UNIT_TYPES = ['APPARTEMENT','STUDIO','LOCAL_COMMERCIAL','MAISON','BUREAU','PARKING','AUTRE'];
 
 router.post('/', MGR, (req, res) => {
-    const { property_id, label, status, expected_rent, type, nb_pieces, surface, etage, description } = req.body;
+    const { property_id, label, status, expected_rent, type, nb_pieces, surface, etage, description,
+            nb_chambres, nb_sdb, meuble, balcon, cave, parking_inclus } = req.body;
     if (!property_id || !label) return res.status(400).json({ error: 'property_id et label requis' });
     const data = load();
     const unit = {
@@ -43,6 +44,12 @@ router.post('/', MGR, (req, res) => {
         surface: surface ? Number(surface) : null,
         etage: etage !== undefined && etage !== '' ? Number(etage) : null,
         description: description || null,
+        nb_chambres: nb_chambres ? Number(nb_chambres) : null,
+        nb_sdb: nb_sdb ? Number(nb_sdb) : null,
+        meuble: meuble === true || meuble === 'true' || false,
+        balcon: balcon === true || balcon === 'true' || false,
+        cave: cave === true || cave === 'true' || false,
+        parking_inclus: parking_inclus === true || parking_inclus === 'true' || false,
         created_at: new Date().toISOString(),
     };
     data.units.push(unit);
@@ -51,7 +58,8 @@ router.post('/', MGR, (req, res) => {
 });
 
 router.put('/:id', MGR, (req, res) => {
-    const { label, status, expected_rent, type, nb_pieces, surface, etage, description } = req.body;
+    const { label, status, expected_rent, type, nb_pieces, surface, etage, description,
+            nb_chambres, nb_sdb, meuble, balcon, cave, parking_inclus } = req.body;
     const data = load();
     const idx = data.units.findIndex(u => u.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
@@ -65,6 +73,12 @@ router.put('/:id', MGR, (req, res) => {
         surface: surface ? Number(surface) : null,
         etage: etage !== undefined && etage !== '' ? Number(etage) : null,
         description: description || null,
+        nb_chambres: nb_chambres ? Number(nb_chambres) : null,
+        nb_sdb: nb_sdb ? Number(nb_sdb) : null,
+        meuble: meuble === true || meuble === 'true' || false,
+        balcon: balcon === true || balcon === 'true' || false,
+        cave: cave === true || cave === 'true' || false,
+        parking_inclus: parking_inclus === true || parking_inclus === 'true' || false,
     };
     save(data);
     res.json(data.units[idx]);

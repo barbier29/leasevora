@@ -260,4 +260,33 @@ router.delete('/:id', MGR, (req, res) => {
     res.json({ success: true });
 });
 
+// GET quittance de loyer
+router.get('/:id/quittance', requireAuth, (req, res) => {
+    const data = load();
+    const s = data.sejours.find(s => s.id === Number(req.params.id));
+    if (!s) return res.status(404).json({ error: 'Non trouvé' });
+    const unit = data.units.find(u => u.id === s.unit_id) || {};
+    const prop = data.properties.find(p => p.id === unit.property_id) || {};
+    const loc = s.locataire_id ? data.locataires.find(l => l.id === s.locataire_id) : null;
+    const txns = data.transactions.filter(t => t.sejour_id === s.id && t.kind === 'IN');
+    const totalPaye = txns.reduce((sum, t) => sum + t.amount, 0);
+    res.json({ sejour: s, unit, property: prop, locataire: loc, paiements: txns, total_paye: totalPaye });
+});
+
+// POST renouveler un séjour
+router.post('/:id/renouveler', requireAuth, (req, res) => {
+    const data = load();
+    const s = data.sejours.find(s => s.id === Number(req.params.id));
+    if (!s) return res.status(404).json({ error: 'Non trouvé' });
+    res.json({
+        unit_id: s.unit_id,
+        locataire_id: s.locataire_id,
+        locataire: s.locataire,
+        montant: s.montant,
+        type_tarif: s.type_tarif,
+        date_debut: s.date_fin,
+        caution: s.caution,
+    });
+});
+
 module.exports = router;
