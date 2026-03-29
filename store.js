@@ -2,6 +2,12 @@ const fs = require('fs');
 const path = require('path');
 
 const FILE = path.join(__dirname, 'data.json');
+const EXAMPLE = path.join(__dirname, 'data.example.json');
+
+// Sur Railway/prod : si data.json absent, initialiser depuis data.example.json
+if (!fs.existsSync(FILE) && fs.existsSync(EXAMPLE)) {
+    fs.copyFileSync(EXAMPLE, FILE);
+}
 
 const DEFAULT_CATEGORIES = [
     { id: 1,  name: 'Loyer mensuel',                    kind: 'IN'  },

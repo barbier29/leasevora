@@ -1,0 +1,343 @@
+{
+  "_seq": {
+    "categories": 47,
+    "properties": 0,
+    "units": 0,
+    "transactions": 0,
+    "sejours": 0,
+    "travaux": 0,
+    "users": 1,
+    "notes": 0,
+    "comptes": 2
+  },
+  "properties": [],
+  "units": [],
+  "categories": [
+    {
+      "id": 1,
+      "name": "Loyer mensuel",
+      "kind": "IN",
+      "created_at": "2026-02-25T16:44:33.559Z"
+    },
+    {
+      "id": 2,
+      "name": "Revenus divers",
+      "kind": "IN",
+      "created_at": "2026-02-25T16:44:33.559Z"
+    },
+    {
+      "id": 3,
+      "name": "Maintenance & réparations",
+      "kind": "OUT",
+      "created_at": "2026-02-25T16:44:33.559Z"
+    },
+    {
+      "id": 4,
+      "name": "Salaire / Personnel",
+      "kind": "OUT",
+      "created_at": "2026-02-25T16:44:33.559Z"
+    },
+    {
+      "id": 5,
+      "name": "Charges & fluides",
+      "kind": "OUT",
+      "created_at": "2026-02-25T16:44:33.559Z"
+    },
+    {
+      "id": 6,
+      "name": "Assurance propriétaire",
+      "kind": "OUT",
+      "created_at": "2026-02-25T16:44:33.559Z"
+    },
+    {
+      "id": 7,
+      "name": "Taxes & impôts",
+      "kind": "OUT",
+      "created_at": "2026-02-25T16:44:33.559Z"
+    },
+    {
+      "id": 8,
+      "name": "Loyer journalier",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 9,
+      "name": "Loyer hebdomadaire",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 10,
+      "name": "Caution / Dépôt de garantie",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 11,
+      "name": "Remboursement de caution",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 12,
+      "name": "Charges récupérables",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 13,
+      "name": "Frais d'agence (entrée)",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 14,
+      "name": "Indemnité d'occupation",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 15,
+      "name": "Pénalités de retard locataire",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 16,
+      "name": "Remboursement assurance",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 17,
+      "name": "Avance sur loyer",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 18,
+      "name": "Subvention / Aide",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 19,
+      "name": "Autres revenus",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 20,
+      "name": "Plomberie",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 21,
+      "name": "Électricité / Travaux électriques",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 22,
+      "name": "Peinture & décoration",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 23,
+      "name": "Menuiserie / Serrurerie",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 24,
+      "name": "Climatisation / Chauffage",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 25,
+      "name": "Nettoyage & entretien",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 26,
+      "name": "Jardinage & espaces verts",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 27,
+      "name": "Charges de copropriété",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 28,
+      "name": "Eau & assainissement",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 29,
+      "name": "Internet & téléphone",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 30,
+      "name": "Assurance multirisque",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 31,
+      "name": "Taxe foncière",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 32,
+      "name": "Taxe d'habitation",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 33,
+      "name": "Honoraires notaire",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 34,
+      "name": "Honoraires avocat",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 35,
+      "name": "Frais bancaires",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 36,
+      "name": "Remboursement emprunt",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 37,
+      "name": "Intérêts d'emprunt",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 38,
+      "name": "Publicité / Annonces",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 39,
+      "name": "Frais de gestion",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 40,
+      "name": "Achat mobilier",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 41,
+      "name": "Achat équipements",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 42,
+      "name": "Travaux de rénovation",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 43,
+      "name": "Mise aux normes",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 44,
+      "name": "Sinistre & dommages",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 45,
+      "name": "Déménagement / Installation",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 46,
+      "name": "Amendes & pénalités",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 47,
+      "name": "Autres dépenses",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    }
+  ],
+  "transactions": [],
+  "sejours": [],
+  "locataires": [],
+  "travaux": [],
+  "compteurs": [],
+  "users": [
+    {
+      "id": 1,
+      "nom": "Admin",
+      "prenom": "Propriétaire",
+      "email": "admin@leasevora.com",
+      "login": "admin",
+      "password": "43611868799e7822594fb181ec3b66375bb99058b086dd3ed9ac21ef7a19b03c",
+      "role": "PROPRIETAIRE",
+      "actif": true,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "permissions": []
+    }
+  ],
+  "settings": {
+    "currency": "XOF",
+    "language": "fr"
+  },
+  "notes": [],
+  "comptes": [
+    {
+      "id": 1,
+      "nom": "Caisse principale",
+      "type": "CAISSE",
+      "solde_initial": 0,
+      "actif": true,
+      "created_at": "2026-03-29T19:11:37.036Z"
+    },
+    {
+      "id": 2,
+      "nom": "Compte bancaire",
+      "type": "BANQUE",
+      "solde_initial": 0,
+      "actif": true,
+      "created_at": "2026-03-29T19:11:37.036Z"
+    }
+  ],
+  "paiements": [],
+  "activite": []
+}
