@@ -309,13 +309,12 @@ async function renderSejoursPage(container) {
                 <label class="form-label">Téléphone</label>
                 <input class="form-control" id="f-tel-loc" type="tel" placeholder="ex. +225 07 00 00 00" />
               </div>
-              <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:2px">
-                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-                  <input type="checkbox" id="f-create-loc" checked style="width:15px;height:15px;accent-color:var(--accent)" />
-                  <span>Créer la fiche locataire automatiquement</span>
-                </label>
+              <div class="form-group">
+                <label class="form-label">Email</label>
+                <input class="form-control" id="f-email-loc" type="email" placeholder="ex. jean@mail.com" />
               </div>
             </div>
+            <div style="font-size:11px;color:var(--accent);margin-top:4px">📋 La fiche locataire sera créée automatiquement</div>
           </div>
 
           <!-- Résumé fiche sélectionnée (visible si fiche choisie) -->
@@ -453,7 +452,8 @@ async function renderSejoursPage(container) {
       const locidVal = document.getElementById('f-locid').value;
       const prenomVal = document.getElementById('f-prenom')?.value?.trim() || '';
       const nomVal = document.getElementById('f-nom')?.value?.trim() || '';
-      const createLoc = document.getElementById('f-create-loc')?.checked && !locidVal;
+      // Toujours créer la fiche locataire si c'est un nouveau (pas de fiche existante sélectionnée)
+      const isNewLoc = !locidVal && nomVal;
 
       const body = {
         unit_id: document.getElementById('f-unit').value,
@@ -461,10 +461,11 @@ async function renderSejoursPage(container) {
           ? (() => { const l = locs.find(l => l.id == locidVal); return l ? `${l.prenom ? l.prenom + ' ' : ''}${l.nom}` : ''; })()
           : `${prenomVal} ${nomVal}`.trim(),
         locataire_id: locidVal ? parseInt(locidVal) : null,
-        create_locataire: createLoc,
-        prenom_locataire: createLoc ? prenomVal : undefined,
-        nom_locataire: createLoc ? nomVal : undefined,
-        telephone_locataire: createLoc ? (document.getElementById('f-tel-loc')?.value?.trim() || null) : undefined,
+        create_locataire: isNewLoc,
+        prenom_locataire: isNewLoc ? prenomVal : undefined,
+        nom_locataire: isNewLoc ? nomVal : undefined,
+        telephone_locataire: isNewLoc ? (document.getElementById('f-tel-loc')?.value?.trim() || null) : undefined,
+        email_locataire: isNewLoc ? (document.getElementById('f-email-loc')?.value?.trim() || null) : undefined,
         date_debut: document.getElementById('f-debut').value,
         date_fin: document.getElementById('f-fin').value || null,
         heure_entree: document.getElementById('f-heure-entree').value || null,

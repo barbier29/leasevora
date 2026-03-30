@@ -168,6 +168,7 @@ router.post('/', requireAuth, NO_TECH, (req, res) => {
             prenom: req.body.prenom_locataire || null,
             email: req.body.email_locataire || null,
             telephone: req.body.telephone_locataire || null,
+            adresse: null,
             num_piece_identite: null,
             type_piece: null,
             caution: Number(req.body.caution_montant) || 0,
