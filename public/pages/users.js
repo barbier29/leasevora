@@ -47,7 +47,10 @@ async function renderUsersPage(container) {
           <div class="page-title">Utilisateurs & Paramètres</div>
           <div class="page-subtitle">${users.length} utilisateur${users.length !== 1 ? 's' : ''}</div>
         </div>
-        <button class="btn btn-primary" id="add-user-btn">+ Nouvel utilisateur</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost" id="invite-user-btn">✉️ Inviter par email</button>
+          <button class="btn btn-primary" id="add-user-btn">+ Nouvel utilisateur</button>
+        </div>
       </div>
 
       <!-- Settings card -->
@@ -148,6 +151,7 @@ async function renderUsersPage(container) {
     `;
 
         document.getElementById('add-user-btn').addEventListener('click', () => showForm());
+        document.getElementById('invite-user-btn').addEventListener('click', () => showInviteForm());
 
         document.getElementById('save-settings-btn').addEventListener('click', async () => {
             const currency = document.getElementById('currency-sel').value;
@@ -292,6 +296,105 @@ async function renderUsersPage(container) {
                 else { await api('/users', { method: 'POST', body }); toast('Utilisateur créé'); }
                 closeModal(); load();
             } catch (e) { toast(e.message, 'error'); }
+        });
+    }
+
+    function showInviteForm() {
+        const permsHtml = PERM_MODULES.map(m => `
+            <label style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg-2);border-radius:8px;cursor:pointer;font-size:13px">
+              <input type="checkbox" class="inv-perm-checkbox" value="${m.key}" style="accent-color:var(--accent)">
+              ${m.label}
+            </label>`).join('');
+
+        openModal(`
+          <div class="modal-title">✉️ Inviter un utilisateur</div>
+          <p style="font-size:13px;color:var(--text-3);margin-bottom:20px">Un lien d'invitation sera généré. Si le SMTP est configuré, l'email sera envoyé automatiquement.</p>
+          <form id="invite-form">
+            <div class="form-row">
+              <div class="form-group" style="flex:2">
+                <label class="form-label">Email *</label>
+                <input class="form-control" id="if-email" type="email" placeholder="jean@exemple.com" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Rôle *</label>
+                <select class="form-control" id="if-role">
+                  <option value="GESTIONNAIRE">🔑 Gestionnaire</option>
+                  <option value="EMPLOYE">👷 Employé</option>
+                  <option value="PROPRIETAIRE">👑 Propriétaire</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group" id="inv-perms-group">
+              <label class="form-label">Accès aux modules</label>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:8px">
+                ${permsHtml}
+              </div>
+            </div>
+            <div id="invite-result" style="display:none;margin-bottom:16px">
+              <div style="background:var(--bg-2);border-radius:10px;padding:14px 16px">
+                <div id="invite-result-msg" style="font-size:13px;margin-bottom:10px;color:var(--text-2)"></div>
+                <div style="font-size:12px;color:var(--text-3);margin-bottom:6px;font-weight:600">LIEN D'INVITATION</div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input class="form-control" id="invite-link-input" readonly style="font-size:12px;font-family:monospace;background:var(--bg-1)" />
+                  <button type="button" class="btn btn-ghost btn-sm" id="copy-link-btn" style="white-space:nowrap">📋 Copier</button>
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-ghost" onclick="closeModal()">Fermer</button>
+              <button type="submit" class="btn btn-primary" id="invite-submit-btn">Envoyer l'invitation</button>
+            </div>
+          </form>
+        `);
+
+        // Toggle perms selon rôle
+        document.getElementById('if-role').addEventListener('change', e => {
+            const show = e.target.value !== 'PROPRIETAIRE';
+            document.getElementById('inv-perms-group').style.display = show ? 'block' : 'none';
+            const defaults = ROLE_PERM_DEFAULTS[e.target.value] || [];
+            document.querySelectorAll('.inv-perm-checkbox').forEach(cb => {
+                cb.checked = defaults.includes(cb.value);
+            });
+        });
+        // Defaults pour gestionnaire
+        const defaults = ROLE_PERM_DEFAULTS['GESTIONNAIRE'] || [];
+        document.querySelectorAll('.inv-perm-checkbox').forEach(cb => {
+            cb.checked = defaults.includes(cb.value);
+        });
+
+        document.getElementById('invite-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const role = document.getElementById('if-role').value;
+            const email = document.getElementById('if-email').value.trim();
+            const permissions = role === 'PROPRIETAIRE' ? [] :
+                [...document.querySelectorAll('.inv-perm-checkbox:checked')].map(cb => cb.value);
+
+            const btn = document.getElementById('invite-submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Génération...';
+
+            try {
+                const result = await api('/invite', { method: 'POST', body: { email, role, permissions } });
+                // Afficher le résultat
+                document.getElementById('invite-result').style.display = 'block';
+                document.getElementById('invite-link-input').value = result.link;
+                document.getElementById('invite-result-msg').innerHTML = result.emailSent
+                    ? `✅ Email envoyé à <strong>${email}</strong>`
+                    : `⚠️ Email non envoyé (SMTP non configuré). Copiez et partagez ce lien manuellement :`;
+                document.getElementById('copy-link-btn').addEventListener('click', () => {
+                    navigator.clipboard.writeText(result.link).then(() => {
+                        document.getElementById('copy-link-btn').textContent = '✅ Copié !';
+                        setTimeout(() => document.getElementById('copy-link-btn').textContent = '📋 Copier', 2000);
+                    });
+                });
+                btn.textContent = 'Nouvelle invitation';
+                btn.disabled = false;
+                document.getElementById('if-email').value = '';
+            } catch (err) {
+                toast(err.message, 'error');
+                btn.disabled = false;
+                btn.textContent = 'Envoyer l\'invitation';
+            }
         });
     }
 

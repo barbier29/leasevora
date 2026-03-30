@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rejoindre Leasevora</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #FAF9F5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      color: #1C1B18;
+    }
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    .brand { font-size: 36px; margin-bottom: 6px; }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .subtitle { color: #524F47; font-size: 14px; margin-bottom: 28px; line-height: 1.5; }
+    .badge {
+      display: inline-block;
+      background: #EEF2FF;
+      color: #2563eb;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+    }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: #524F47; }
+    input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #E5E4DF;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: inherit;
+      background: #FAF9F5;
+      color: #1C1B18;
+      transition: border-color .15s;
+      outline: none;
+    }
+    input:focus { border-color: #2563eb; background: #fff; }
+    .row { display: flex; gap: 12px; }
+    .row .form-group { flex: 1; }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      margin-top: 4px;
+      transition: background .15s, opacity .15s;
+    }
+    .btn:hover { background: #1d4ed8; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .error {
+      background: #FEF2F2;
+      color: #DC2626;
+      border: 1px solid #FECACA;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .success {
+      text-align: center;
+      display: none;
+    }
+    .success .icon { font-size: 48px; margin-bottom: 16px; }
+    .success h2 { font-size: 20px; margin-bottom: 8px; }
+    .success p { color: #524F47; font-size: 14px; margin-bottom: 24px; }
+    .success a {
+      display: inline-block;
+      padding: 12px 28px;
+      background: #2563eb;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 15px;
+    }
+    #loading { text-align: center; padding: 20px 0; color: #524F47; }
+    #form-area { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">🪹</div>
+
+    <div id="loading">Vérification de l'invitation...</div>
+
+    <div id="error-block" class="error" style="display:none"></div>
+
+    <div id="form-area">
+      <h1>Créer votre compte</h1>
+      <p class="subtitle" id="invite-subtitle">Vous avez été invité à rejoindre Leasevora.</p>
+      <div class="badge" id="role-badge"></div>
+
+      <div id="form-error" class="error"></div>
+
+      <form id="invite-form">
+        <div class="row">
+          <div class="form-group">
+            <label>Prénom</label>
+            <input type="text" id="f-prenom" placeholder="Jean" />
+          </div>
+          <div class="form-group">
+            <label>Nom *</label>
+            <input type="text" id="f-nom" placeholder="Dupont" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Login (identifiant de connexion) *</label>
+          <input type="text" id="f-login" placeholder="jean.dupont" required autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label>Mot de passe *</label>
+          <input type="password" id="f-pwd" placeholder="••••••••" required minlength="6" autocomplete="new-password" />
+        </div>
+        <div class="form-group">
+          <label>Confirmer le mot de passe *</label>
+          <input type="password" id="f-pwd2" placeholder="••••••••" required minlength="6" autocomplete="new-password" />
+        </div>
+        <button type="submit" class="btn" id="submit-btn">Créer mon compte</button>
+      </form>
+    </div>
+
+    <div id="success-area" class="success">
+      <div class="icon">✅</div>
+      <h2>Compte créé !</h2>
+      <p>Votre compte a été créé avec succès. Vous pouvez maintenant vous connecter.</p>
+      <a href="/">Se connecter</a>
+    </div>
+  </div>
+
+  <script>
+    const ROLES = {
+      PROPRIETAIRE: '👑 Propriétaire',
+      GESTIONNAIRE: '🔑 Gestionnaire',
+      EMPLOYE: '👷 Employé',
+    };
+
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+
+    async function init() {
+      if (!token) {
+        showError('Lien d\'invitation invalide. Demandez un nouveau lien à votre administrateur.');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/invite/${token}`);
+        const data = await res.json();
+        if (!res.ok) {
+          showError(data.error || 'Invitation invalide ou expirée.');
+          return;
+        }
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('form-area').style.display = 'block';
+        document.getElementById('invite-subtitle').textContent =
+          `Invité par ${data.invited_by_nom} — connectez-vous avec : ${data.email}`;
+        document.getElementById('role-badge').textContent = ROLES[data.role] || data.role;
+      } catch (e) {
+        showError('Erreur réseau. Veuillez réessayer.');
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById('loading').style.display = 'none';
+      const el = document.getElementById('error-block');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    document.getElementById('invite-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nom    = document.getElementById('f-nom').value.trim();
+      const prenom = document.getElementById('f-prenom').value.trim();
+      const login  = document.getElementById('f-login').value.trim();
+      const pwd    = document.getElementById('f-pwd').value;
+      const pwd2   = document.getElementById('f-pwd2').value;
+      const errEl  = document.getElementById('form-error');
+
+      errEl.style.display = 'none';
+
+      if (pwd !== pwd2) {
+        errEl.textContent = 'Les mots de passe ne correspondent pas.';
+        errEl.style.display = 'block';
+        return;
+      }
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Création...';
+
+      try {
+        const res = await fetch(`/api/invite/${token}/accept`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nom, prenom, login, password: pwd }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errEl.textContent = data.error || 'Erreur lors de la création du compte.';
+          errEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Créer mon compte';
+          return;
+        }
+        document.getElementById('form-area').style.display = 'none';
+        document.getElementById('success-area').style.display = 'block';
+      } catch (err) {
+        errEl.textContent = 'Erreur réseau. Veuillez réessayer.';
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Créer mon compte';
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>

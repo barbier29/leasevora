@@ -34,6 +34,7 @@ app.use((_req, res, next) => {
 
 // Public routes (no auth required)
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/invite', require('./routes/invite')); // gère son propre auth en interne
 
 // All other /api routes require authentication
 app.use('/api', requireAuth);
