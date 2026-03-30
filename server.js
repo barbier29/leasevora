@@ -57,6 +57,42 @@ app.use('/api/paiements', require('./routes/paiements'));
 app.use('/api/search', require('./routes/search'));
 app.use('/api/activite', require('./routes/activite').router);
 
+// ── Endpoint diagnostic Supabase (temporaire) ─────────────────────────────
+app.get('/api/debug/supabase', requireAuth, async (req, res) => {
+    const SUPABASE_URL = process.env.SUPABASE_URL || '';
+    const SUPABASE_KEY = process.env.SUPABASE_KEY || '';
+    const USE_SUPABASE = !!(SUPABASE_URL && SUPABASE_KEY);
+    const result = { USE_SUPABASE, SUPABASE_URL: SUPABASE_URL ? SUPABASE_URL.substring(0,30)+'...' : 'NON DÉFINI' };
+    if (!USE_SUPABASE) return res.json({ ...result, error: 'Supabase non configuré' });
+    try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/store?id=eq.1&select=data`, {
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+        result.http_status = r.status;
+        result.http_ok = r.ok;
+        if (r.ok) {
+            const rows = await r.json();
+            result.rows_count = rows.length;
+            if (rows.length > 0 && rows[0].data) {
+                const d = rows[0].data;
+                result.supabase_data = {
+                    users: (d.users||[]).map(u => u.login),
+                    properties: (d.properties||[]).map(p => p.name),
+                    units: (d.units||[]).length,
+                    transactions: (d.transactions||[]).length,
+                };
+            } else {
+                result.supabase_data = 'VIDE ou null';
+            }
+        } else {
+            result.error_body = await r.text();
+        }
+    } catch(e) {
+        result.fetch_error = e.message;
+    }
+    res.json(result);
+});
+
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
