@@ -3,7 +3,7 @@ const router = express.Router();
 const { load, save, nextId } = require('../store');
 const { hashPwd, requireRole } = require('../middleware/auth');
 
-const ROLES = ['PROPRIETAIRE', 'GESTIONNAIRE', 'EMPLOYE'];
+const ROLES = ['PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT', 'TECHNICIEN'];
 
 // GET all (admin only)
 router.get('/', requireRole('PROPRIETAIRE'), (req, res) => {

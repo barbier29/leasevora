@@ -5,7 +5,7 @@ const nodemailer = require('nodemailer');
 const { load, save, nextId } = require('../store');
 const { hashPwd, requireAuth, requireRole } = require('../middleware/auth');
 
-const ROLES = ['PROPRIETAIRE', 'GESTIONNAIRE', 'EMPLOYE'];
+const ROLES = ['PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT', 'TECHNICIEN'];
 const INVITE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 jours
 
 // ── Envoi email via SMTP configuré dans settings ──────────────────────────

@@ -1,8 +1,9 @@
 async function renderUsersPage(container) {
     const ROLES = {
-        PROPRIETAIRE: { label: '👑 Propriétaire', cls: 'badge-in' },
-        GESTIONNAIRE: { label: '🔑 Gestionnaire', cls: 'badge-building' },
-        EMPLOYE: { label: '👷 Employé', cls: 'badge-vacant' },
+        PROPRIETAIRE: { label: '👑 Propriétaire',    cls: 'badge-in'       },
+        GESTIONNAIRE: { label: '🔑 Gestionnaire',    cls: 'badge-building' },
+        AGENT:        { label: '🧑‍💼 Agent locatif',  cls: 'badge-vacant'   },
+        TECHNICIEN:   { label: '🔧 Technicien',      cls: 'badge-out'      },
     };
 
     const LANGUAGES_LABELS  = { fr: '🇫🇷 Français', en: '🇬🇧 English' };
@@ -24,7 +25,8 @@ async function renderUsersPage(container) {
     const ROLE_PERM_DEFAULTS = {
         PROPRIETAIRE: PERM_MODULES.map(m => m.key),
         GESTIONNAIRE: ['dashboard', 'properties', 'units', 'locataires', 'sejours', 'calendrier', 'travaux', 'compteurs'],
-        EMPLOYE: ['dashboard', 'units', 'locataires', 'sejours', 'calendrier', 'travaux', 'compteurs'],
+        AGENT:        ['locataires', 'sejours', 'calendrier', 'transactions', 'travaux', 'compteurs'],
+        TECHNICIEN:   ['travaux', 'compteurs'],
     };
 
     async function load() {
@@ -111,38 +113,39 @@ async function renderUsersPage(container) {
       <!-- Tableau des droits par rôle -->
       <div class="card" style="margin-top:24px">
         <div class="card-header"><span class="card-title">🔐 Droits par rôle</span></div>
-        <div style="padding:20px">
-          <table>
+        <div style="padding:20px;overflow-x:auto">
+          <table style="min-width:600px">
             <thead><tr>
               <th>Section</th>
               <th style="text-align:center">👑 Propriétaire</th>
               <th style="text-align:center">🔑 Gestionnaire</th>
-              <th style="text-align:center">👷 Employé</th>
+              <th style="text-align:center">🧑‍💼 Agent locatif</th>
+              <th style="text-align:center">🔧 Technicien</th>
             </tr></thead>
             <tbody>
               ${[
-            ['Tableau de bord', 'complet', 'complet', 'limité'],
-            ['Propriétés', 'lecture + écriture', 'lecture + écriture', 'non'],
-            ['Appartements', 'lecture + écriture', 'lecture + écriture', 'lecture'],
-            ['Locataires', 'lecture + écriture', 'lecture + écriture', 'lecture'],
-            ['Séjours', 'lecture + écriture', 'lecture + écriture', 'lecture + écriture'],
-            ['Calendrier', 'complet', 'complet', 'complet'],
-            ['Transactions', 'lecture + écriture', 'lecture + écriture', 'non'],
-            ['Caisse', 'lecture + écriture', 'lecture + écriture', 'non'],
-            ['Travaux', 'lecture + écriture', 'lecture + écriture', 'lecture + écriture'],
-            ['Compteurs', 'lecture + écriture', 'lecture + écriture', 'lecture + écriture'],
-            ['Catégories', 'lecture + écriture', 'lecture', 'non'],
-            ['Utilisateurs', 'lecture + écriture', 'non', 'non'],
-            ['Paramètres', 'lecture + écriture', 'non', 'non'],
-        ].map(([section, own, mgr, emp]) => {
+            ['Tableau de bord',  'complet',           'complet',           'non',               'non'],
+            ['Propriétés',       'lecture + écriture', 'lecture + écriture','non',               'non'],
+            ['Appartements',     'lecture + écriture', 'lecture + écriture','non',               'lecture'],
+            ['Locataires',       'lecture + écriture', 'lecture + écriture','lecture + écriture','non'],
+            ['Séjours',          'lecture + écriture', 'lecture + écriture','lecture + écriture','non'],
+            ['Calendrier',       'complet',            'complet',           'complet',           'non'],
+            ['Transactions',     'lecture + écriture', 'lecture + écriture','lecture + écriture','non'],
+            ['Caisse',           'lecture + écriture', 'lecture + écriture','non',               'non'],
+            ['Finances',         'lecture + écriture', 'non',               'non',               'non'],
+            ['Travaux',          'lecture + écriture', 'lecture + écriture','lecture + écriture','lecture + écriture'],
+            ['Compteurs',        'lecture + écriture', 'lecture + écriture','lecture + écriture','lecture + écriture'],
+            ['Catégories',       'lecture + écriture', 'lecture',           'non',               'non'],
+            ['Utilisateurs',     'lecture + écriture', 'non',               'non',               'non'],
+            ['Paramètres',       'lecture + écriture', 'non',               'non',               'non'],
+        ].map(([section, own, mgr, agent, tech]) => {
             const cell = v => {
-                if (v === 'non') return `<td style="text-align:center"><span class="badge badge-out">✕ Aucun</span></td>`;
+                if (v === 'non') return `<td style="text-align:center"><span class="badge badge-out">✕</span></td>`;
                 if (v === 'complet' || v === 'lecture + écriture') return `<td style="text-align:center"><span class="badge badge-in">✓ ${v}</span></td>`;
                 if (v === 'lecture') return `<td style="text-align:center"><span class="badge badge-building">👁 Lecture</span></td>`;
-                if (v === 'limité') return `<td style="text-align:center"><span class="badge badge-vacant">⚡ Limité</span></td>`;
                 return `<td style="text-align:center">—</td>`;
             };
-            return `<tr><td><strong>${section}</strong></td>${cell(own)}${cell(mgr)}${cell(emp)}</tr>`;
+            return `<tr><td><strong>${section}</strong></td>${cell(own)}${cell(mgr)}${cell(agent)}${cell(tech)}</tr>`;
         }).join('')}
             </tbody>
           </table>
@@ -184,6 +187,7 @@ async function renderUsersPage(container) {
         const isEdit = !!user;
         const currentRole = user?.role || 'EMPLOYE';
         const isProprietaire = currentRole === 'PROPRIETAIRE';
+
 
         // Determine which permissions to pre-check
         const activePerms = (user?.permissions && user.permissions.length > 0)
@@ -228,8 +232,9 @@ async function renderUsersPage(container) {
             <label class="form-label">Rôle *</label>
             <select class="form-control" id="uf-role">
               <option value="PROPRIETAIRE" ${currentRole === 'PROPRIETAIRE' ? 'selected' : ''}>👑 Propriétaire — accès complet</option>
-              <option value="GESTIONNAIRE" ${currentRole === 'GESTIONNAIRE' ? 'selected' : ''}>🔑 Gestionnaire — sans finances privées</option>
-              <option value="EMPLOYE"      ${currentRole === 'EMPLOYE' ? 'selected' : ''}>👷 Employé — opérationnel uniquement</option>
+              <option value="GESTIONNAIRE" ${currentRole === 'GESTIONNAIRE' ? 'selected' : ''}>🔑 Gestionnaire — gestion sans finances</option>
+              <option value="AGENT"        ${currentRole === 'AGENT'        ? 'selected' : ''}>🧑‍💼 Agent locatif — locations & transactions</option>
+              <option value="TECHNICIEN"   ${currentRole === 'TECHNICIEN'   ? 'selected' : ''}>🔧 Technicien — travaux & compteurs uniquement</option>
             </select>
           </div>
         </div>
@@ -318,8 +323,9 @@ async function renderUsersPage(container) {
               <div class="form-group">
                 <label class="form-label">Rôle *</label>
                 <select class="form-control" id="if-role">
+                  <option value="AGENT">🧑‍💼 Agent locatif</option>
+                  <option value="TECHNICIEN">🔧 Technicien</option>
                   <option value="GESTIONNAIRE">🔑 Gestionnaire</option>
-                  <option value="EMPLOYE">👷 Employé</option>
                   <option value="PROPRIETAIRE">👑 Propriétaire</option>
                 </select>
               </div>
@@ -356,8 +362,8 @@ async function renderUsersPage(container) {
                 cb.checked = defaults.includes(cb.value);
             });
         });
-        // Defaults pour gestionnaire
-        const defaults = ROLE_PERM_DEFAULTS['GESTIONNAIRE'] || [];
+        // Defaults pour agent (rôle par défaut dans le formulaire invitation)
+        const defaults = ROLE_PERM_DEFAULTS['AGENT'] || [];
         document.querySelectorAll('.inv-perm-checkbox').forEach(cb => {
             cb.checked = defaults.includes(cb.value);
         });
