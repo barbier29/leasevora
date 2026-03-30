@@ -1,4 +1,4 @@
-const CACHE_NAME = 'leasevora-v3';
+const CACHE_NAME = 'leasevora-v4';
 
 const STATIC_ASSETS = [
   '/',
@@ -59,32 +59,25 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Assets statiques : cache first, fallback network, fallback page /
+  // Assets statiques : network first, fallback cache, fallback page /
+  // Network first garantit que les mises à jour sont toujours visibles
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) {
-        return cached;
-      }
-
-      return fetch(event.request)
-        .then((networkResponse) => {
-          // Mettre en cache la réponse réseau pour la prochaine fois
-          if (
-            networkResponse &&
-            networkResponse.status === 200 &&
-            networkResponse.type !== 'opaque'
-          ) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => {
-          // Offline et ressource non en cache : retourner la page d'accueil
-          return caches.match('/');
+    fetch(event.request)
+      .then((networkResponse) => {
+        // Mettre en cache la réponse réseau pour le mode offline
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type !== 'opaque') {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return networkResponse;
+      })
+      .catch(() => {
+        // Offline : servir depuis le cache
+        return caches.match(event.request).then((cached) => {
+          return cached || caches.match('/');
         });
-    })
+      })
   );
 });
