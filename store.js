@@ -24,20 +24,41 @@ async function syncFromSupabase() {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/store?id=eq.1&select=data`, {
             headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
         });
+
+        // Vérifier le statut HTTP avant de lire le body
+        if (!res.ok) {
+            console.warn(`⚠️  Supabase sync: HTTP ${res.status} — données locales conservées, aucune écriture`);
+            return;
+        }
+
         const rows = await res.json();
+
         if (Array.isArray(rows) && rows.length > 0 && rows[0].data) {
+            // ✅ Supabase a des données → restaurer localement
             fs.writeFileSync(FILE, JSON.stringify(rows[0].data, null, 2));
             console.log('✅ Données restaurées depuis Supabase');
-        } else {
-            // Première fois : pousser data.json vers Supabase
+        } else if (Array.isArray(rows) && rows.length === 0) {
+            // Supabase vide (premier démarrage absolu) → pousser les données locales
+            // SÉCURITÉ : ne pousser que si les données locales ont du contenu réel
             if (fs.existsSync(FILE)) {
-                const data = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-                await pushToSupabase(data);
-                console.log('✅ Données initiales envoyées à Supabase');
+                const localData = JSON.parse(fs.readFileSync(FILE, 'utf8'));
+                const hasRealData = (localData.users || []).length > 0 ||
+                                    (localData.properties || []).length > 0 ||
+                                    (localData.transactions || []).length > 0;
+                if (hasRealData) {
+                    await pushToSupabase(localData);
+                    console.log('✅ Données initiales envoyées à Supabase');
+                } else {
+                    console.log('ℹ️  Supabase vide et données locales vides — rien à pousser');
+                }
             }
+        } else {
+            // Réponse inattendue (pas un tableau, rows[0].data null…)
+            // → NE RIEN FAIRE, protéger Supabase
+            console.warn('⚠️  Supabase sync: réponse inattendue — données locales conservées, Supabase inchangé');
         }
     } catch (e) {
-        console.error('⚠️  Supabase sync failed:', e.message);
+        console.error('⚠️  Supabase sync failed:', e.message, '— données locales conservées');
     }
 }
 
@@ -248,7 +269,13 @@ function load() {
 function save(data) {
     fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
     // Push vers Supabase en arrière-plan (fire & forget)
-    pushToSupabase(data);
+    // Sécurité : ne jamais pousser si les données semblent être le fichier exemple vide
+    const hasUsers = (data.users || []).length > 0;
+    if (hasUsers) {
+        pushToSupabase(data);
+    } else {
+        console.warn('⚠️  save(): données sans utilisateurs — push Supabase ignoré par sécurité');
+    }
 }
 
 function nextId(data, table) {
