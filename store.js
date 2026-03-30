@@ -266,17 +266,59 @@ function load() {
     } catch { return JSON.parse(JSON.stringify(DEFAULT)); }
 }
 
+// ── Sauvegarde périodique et graceful shutdown ─────────────────────────────
+// Render envoie SIGTERM avant de tuer le process. On intercepte ce signal
+// pour forcer un push Supabase synchrone avant de mourir.
+
+let _pendingSave = null; // dernières données à synchroniser
+
 function save(data) {
     fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
-    // Push vers Supabase en arrière-plan (fire & forget)
-    // Sécurité : ne jamais pousser si les données semblent être le fichier exemple vide
     const hasUsers = (data.users || []).length > 0;
-    if (hasUsers) {
-        pushToSupabase(data);
-    } else {
-        console.warn('⚠️  save(): données sans utilisateurs — push Supabase ignoré par sécurité');
+    if (!hasUsers) {
+        console.warn('⚠️  save(): 0 utilisateurs — push Supabase ignoré par sécurité');
+        return;
     }
+    // Mémoriser pour le flush SIGTERM
+    _pendingSave = data;
+    // Push asynchrone (fire & forget pour la performance en cours d'exécution)
+    pushToSupabase(data);
 }
+
+// Sauvegarde périodique toutes les 30s (filet de sécurité)
+if (USE_SUPABASE) {
+    setInterval(() => {
+        if (!fs.existsSync(FILE)) return;
+        try {
+            const data = JSON.parse(fs.readFileSync(FILE, 'utf8'));
+            const hasUsers = (data.users || []).length > 0;
+            if (hasUsers) {
+                pushToSupabase(data);
+            }
+        } catch (e) { /* silencieux */ }
+    }, 30000);
+}
+
+// Graceful shutdown : attendre que Supabase reçoive les données avant de mourir
+async function flushAndExit(signal) {
+    console.log(`\n⚡ ${signal} reçu — flush Supabase avant arrêt...`);
+    if (USE_SUPABASE && fs.existsSync(FILE)) {
+        try {
+            const data = JSON.parse(fs.readFileSync(FILE, 'utf8'));
+            const hasUsers = (data.users || []).length > 0;
+            if (hasUsers) {
+                await pushToSupabase(data);
+                console.log('✅ Données sauvegardées dans Supabase avant arrêt');
+            }
+        } catch (e) {
+            console.error('⚠️  Flush final échoué:', e.message);
+        }
+    }
+    process.exit(0);
+}
+
+process.on('SIGTERM', () => flushAndExit('SIGTERM'));
+process.on('SIGINT',  () => flushAndExit('SIGINT'));
 
 function nextId(data, table) {
     if (!data._seq) data._seq = {};
