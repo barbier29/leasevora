@@ -7,7 +7,7 @@ const path = require('path');
 require('./db');
 
 const { seedAdmin, requireAuth } = require('./middleware/auth');
-seedAdmin();
+// seedAdmin() est appelé APRÈS syncFromSupabase() dans app.listen
 
 const app = express();
 const corsOptions = process.env.NODE_ENV === 'production'
@@ -70,7 +70,9 @@ if (!process.env.JWT_SECRET) {
 const { syncFromSupabase } = require('./store');
 
 app.listen(PORT, async () => {
-    console.log(`\n🏢  Leasevora disponible sur http://localhost:${PORT}\n`);
-    // Restaurer les données depuis Supabase au démarrage
+    // 1. Restaurer les données depuis Supabase EN PREMIER
     await syncFromSupabase();
+    // 2. Créer l'admin seulement si aucun utilisateur n'existe (après sync)
+    seedAdmin();
+    console.log(`\n🏢  Leasevora disponible sur http://localhost:${PORT}\n`);
 });
