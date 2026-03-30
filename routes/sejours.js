@@ -71,6 +71,47 @@ router.get('/', requireAuth, NO_TECH, (req, res) => {
     res.json(list.map(s => enrich(s, data)));
 });
 
+// GET /sejours/cautions — vue d'ensemble des cautions
+router.get('/cautions', requireAuth, NO_TECH, (req, res) => {
+    const data = load();
+    const cautions = data.sejours
+        .filter(s => s.caution_montant > 0)
+        .map(s => {
+            const unit = data.units.find(u => u.id === s.unit_id) || {};
+            const prop = data.properties.find(p => p.id === unit.property_id) || {};
+            return {
+                sejour_id: s.id,
+                locataire: s.locataire,
+                locataire_id: s.locataire_id,
+                unit_label: unit.label || '?',
+                property_name: prop.name || '?',
+                statut_sejour: s.statut,
+                caution_montant: s.caution_montant,
+                caution_statut: s.caution_statut,
+                caution_date: s.caution_date,
+                caution_date_restitution: s.caution_date_restitution,
+                caution_montant_utilise: s.caution_montant_utilise || 0,
+                caution_notes: s.caution_notes,
+                caution_historique: s.caution_historique || [],
+                date_debut: s.date_debut,
+                date_fin: s.date_fin,
+            };
+        })
+        .sort((a, b) => b.date_debut.localeCompare(a.date_debut));
+
+    const summary = {
+        total_cautions: cautions.length,
+        total_montant: cautions.reduce((s, c) => s + c.caution_montant, 0),
+        en_attente: cautions.filter(c => c.caution_statut === 'EN_ATTENTE').length,
+        payees: cautions.filter(c => c.caution_statut === 'PAYEE').length,
+        a_restituer: cautions.filter(c => ['PAYEE', 'EN_ATTENTE'].includes(c.caution_statut) && c.statut_sejour === 'TERMINE').length,
+        restituees: cautions.filter(c => c.caution_statut === 'RESTITUEE').length,
+        retenues: cautions.filter(c => ['UTILISEE_PARTIELLE', 'UTILISEE_TOTALE'].includes(c.caution_statut)).length,
+    };
+
+    res.json({ summary, cautions });
+});
+
 // GET single — tous sauf TECHNICIEN
 router.get('/:id', requireAuth, NO_TECH, (req, res) => {
     const data = load();
@@ -122,7 +163,7 @@ router.patch('/:id/caution', MGR, (req, res) => {
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
     const s = data.sejours[idx];
 
-    const VALID = ['AUCUNE', 'EN_ATTENTE', 'RESTITUEE', 'UTILISEE_PARTIELLE', 'UTILISEE_TOTALE'];
+    const VALID = ['AUCUNE', 'EN_ATTENTE', 'PAYEE', 'RESTITUEE', 'UTILISEE_PARTIELLE', 'UTILISEE_TOTALE'];
     if (caution_statut && !VALID.includes(caution_statut))
         return res.status(400).json({ error: 'Statut caution invalide' });
 
@@ -130,6 +171,16 @@ router.patch('/:id/caution', MGR, (req, res) => {
     if (caution_montant_utilise !== undefined) s.caution_montant_utilise   = Number(caution_montant_utilise);
     if (caution_notes !== undefined)           s.caution_notes             = caution_notes || null;
     if (caution_date_restitution !== undefined) s.caution_date_restitution = caution_date_restitution || null;
+
+    // Track history
+    if (!s.caution_historique) s.caution_historique = [];
+    s.caution_historique.push({
+        date: new Date().toISOString(),
+        action: caution_statut || s.caution_statut,
+        montant_utilise: s.caution_montant_utilise,
+        notes: caution_notes || s.caution_notes || null,
+        user: req.user?.login || null,
+    });
 
     save(data);
     res.json(enrich(s, data));

@@ -13,18 +13,20 @@ async function renderSejoursPage(container) {
   };
   const CAUTION_STATUTS = {
     AUCUNE:            { label: '—', cls: '' },
-    EN_ATTENTE:        { label: 'Caution tenue', cls: 'badge-building' },
-    RESTITUEE:         { label: 'Caution restituée', cls: 'badge-occupied' },
-    UTILISEE_PARTIELLE:{ label: 'Caution partielle', cls: 'badge-standalone' },
-    UTILISEE_TOTALE:   { label: 'Caution utilisée', cls: 'badge-out' },
+    EN_ATTENTE:        { label: 'En attente', cls: 'badge-building' },
+    PAYEE:             { label: 'Caution payée', cls: 'badge-occupied' },
+    RESTITUEE:         { label: 'Restituée', cls: 'badge-vacant' },
+    UTILISEE_PARTIELLE:{ label: 'Retenue partielle', cls: 'badge-standalone' },
+    UTILISEE_TOTALE:   { label: 'Retenue totale', cls: 'badge-out' },
   };
 
   async function load() {
     try {
-      const [sejours, units, props, locs] = await Promise.all([
+      const [sejours, units, props, locs, cautionsData] = await Promise.all([
         api('/sejours'), api('/units'), api('/properties'), api('/locataires'),
+        api('/sejours/cautions').catch(() => null),
       ]);
-      render(sejours, units, props, locs);
+      render(sejours, units, props, locs, cautionsData);
     } catch (e) {
       container.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><p>${e.message}</p></div>`;
     }
@@ -51,7 +53,7 @@ async function renderSejoursPage(container) {
     return j !== null ? s.montant * j : s.montant;
   }
 
-  function render(sejours, units, props, locs) {
+  function render(sejours, units, props, locs, cautionsData) {
     container.innerHTML = `
       <div class="page-header">
         <div>
@@ -60,6 +62,20 @@ async function renderSejoursPage(container) {
         </div>
         <button class="btn btn-primary" id="add-sejour-btn">+ Nouveau séjour</button>
       </div>
+      ${cautionsData ? `
+      <div class="card" style="margin-bottom:16px;padding:16px">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div style="font-size:13px;font-weight:700">Cautions</div>
+          <div style="display:flex;gap:20px;flex-wrap:wrap;font-size:12px">
+            <div><span style="color:var(--text-3)">Total :</span> <strong>${fmtMoney(cautionsData.summary.total_montant)}</strong> <span class="text-muted">(${cautionsData.summary.total_cautions})</span></div>
+            ${cautionsData.summary.en_attente > 0 ? `<div><span class="badge badge-building">En attente : ${cautionsData.summary.en_attente}</span></div>` : ''}
+            ${cautionsData.summary.payees > 0 ? `<div><span class="badge badge-occupied">Payées : ${cautionsData.summary.payees}</span></div>` : ''}
+            ${cautionsData.summary.a_restituer > 0 ? `<div><span class="badge badge-out">À restituer : ${cautionsData.summary.a_restituer}</span></div>` : ''}
+            ${cautionsData.summary.restituees > 0 ? `<div><span class="badge badge-vacant">Restituées : ${cautionsData.summary.restituees}</span></div>` : ''}
+            ${cautionsData.summary.retenues > 0 ? `<div><span class="badge badge-standalone">Retenues : ${cautionsData.summary.retenues}</span></div>` : ''}
+          </div>
+        </div>
+      </div>` : ''}
       <div class="card">
         <table>
           <thead><tr>
@@ -70,6 +86,7 @@ async function renderSejoursPage(container) {
             <th>Total dû</th>
             <th>Paiement</th>
             <th>Statut</th>
+            <th>Caution</th>
             <th></th>
           </tr></thead>
           <tbody>
@@ -99,12 +116,18 @@ async function renderSejoursPage(container) {
                   ${(s.solde_restant || 0) > 0 ? `<div style="font-size:11px;color:var(--red);margin-top:2px">${fmtMoney(s.solde_restant)} restant</div>` : ''}
                 </td>
                 <td><span class="badge ${st.cls}">${st.label}</span></td>
+                <td>
+                  ${s.caution_montant > 0 ? `
+                    <div style="font-size:12px;font-weight:600">${fmtMoney(s.caution_montant)}</div>
+                    <span class="badge ${cauSt.cls}" style="font-size:10px">${cauSt.label}</span>
+                  ` : '<span class="text-muted" style="font-size:11px">—</span>'}
+                </td>
                 <td style="text-align:right;white-space:nowrap">
                   <button class="btn btn-danger btn-sm del-sej-btn" data-id="${s.id}" data-name="${s.locataire}">✕</button>
                 </td>
               </tr>`;
     }).join('')
-        : '<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">🛏️</div><p>Aucun séjour enregistré.</p></div></td></tr>'}
+        : '<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">🛏️</div><p>Aucun séjour enregistré.</p></div></td></tr>'}
           </tbody>
         </table>
       </div>
@@ -184,6 +207,35 @@ async function renderSejoursPage(container) {
         </div>` : `<div style="color:var(--green);font-size:13px;font-weight:600;padding-top:4px">✓ Séjour intégralement soldé</div>`}
       </div>
 
+      <!-- Bloc caution -->
+      ${s.caution_montant > 0 ? `
+      <div style="background:var(--bg-2);border-radius:8px;padding:14px;margin-bottom:16px;border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:12px">CAUTION DE GARANTIE</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--text-3)">Montant</div>
+            <div style="font-size:16px;font-weight:700">${fmtMoney(s.caution_montant)}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--text-3)">Statut</div>
+            <div><span class="badge ${(CAUTION_STATUTS[s.caution_statut] || CAUTION_STATUTS['AUCUNE']).cls}">${(CAUTION_STATUTS[s.caution_statut] || CAUTION_STATUTS['AUCUNE']).label}</span></div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--text-3)">Retenu</div>
+            <div style="font-size:16px;font-weight:700;color:${(s.caution_montant_utilise || 0) > 0 ? 'var(--red)' : 'var(--text-3)'}">${fmtMoney(s.caution_montant_utilise || 0)}</div>
+          </div>
+        </div>
+        ${s.caution_date ? `<div style="font-size:11px;color:var(--text-3);margin-bottom:8px">Perçue le ${fmtDate(s.caution_date)}</div>` : ''}
+        ${s.caution_date_restitution ? `<div style="font-size:11px;color:var(--green);margin-bottom:8px">Restituée le ${fmtDate(s.caution_date_restitution)}</div>` : ''}
+        ${s.caution_notes ? `<div style="font-size:12px;color:var(--text-2);margin-bottom:8px;padding:8px;background:var(--bg-3);border-radius:4px">${s.caution_notes}</div>` : ''}
+        ${['EN_ATTENTE', 'PAYEE', 'UTILISEE_PARTIELLE'].includes(s.caution_statut) ? `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+          ${s.caution_statut === 'EN_ATTENTE' ? `<button class="btn btn-primary btn-sm" id="btn-caution-payee">✓ Marquer comme payée</button>` : ''}
+          ${['PAYEE', 'UTILISEE_PARTIELLE'].includes(s.caution_statut) ? `<button class="btn btn-ghost btn-sm" id="btn-caution-restituer-det" style="color:var(--green)">✅ Restituer</button>` : ''}
+          ${['PAYEE', 'EN_ATTENTE'].includes(s.caution_statut) ? `<button class="btn btn-ghost btn-sm" id="btn-caution-utiliser-det" style="color:var(--red)">🔧 Retenir pour dégâts</button>` : ''}
+        </div>` : ''}
+      </div>` : ''}
+
       ${loc ? `<div style="padding:10px;background:var(--bg-2);border-radius:6px;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
         <span>👤 <strong>${loc.prenom ? loc.prenom + ' ' : ''}${loc.nom}</strong></span>
         ${loc.telephone ? `<span class="text-muted">${loc.telephone}</span>` : ''}
@@ -262,6 +314,71 @@ async function renderSejoursPage(container) {
         } catch (e) { toast(e.message, 'error'); }
       });
     }
+
+    // Caution action handlers
+    document.getElementById('btn-caution-payee')?.addEventListener('click', async () => {
+        try {
+            await api(`/sejours/${s.id}/caution`, {
+                method: 'PATCH',
+                body: { caution_statut: 'PAYEE' }
+            });
+            toast('Caution marquée comme payée');
+            closeModal();
+            onRefresh();
+        } catch (e) { toast(e.message, 'error'); }
+    });
+
+    document.getElementById('btn-caution-restituer-det')?.addEventListener('click', async () => {
+        const today = new Date().toISOString().slice(0, 10);
+        const montantUtilise = s.caution_montant_utilise || 0;
+        const montantRestitue = s.caution_montant - montantUtilise;
+        if (!confirm(`Restituer ${fmtMoney(montantRestitue)} au locataire ?`)) return;
+        try {
+            await api(`/sejours/${s.id}/caution`, {
+                method: 'PATCH',
+                body: { caution_statut: 'RESTITUEE', caution_date_restitution: today }
+            });
+            toast('Caution restituée');
+            closeModal();
+            onRefresh();
+        } catch (e) { toast(e.message, 'error'); }
+    });
+
+    document.getElementById('btn-caution-utiliser-det')?.addEventListener('click', () => {
+        const montantCaution = s.caution_montant;
+        openModal(`
+            <div class="modal-title">🔧 Retenir la caution pour dégâts</div>
+            <form id="form-caution-use-det">
+                <div class="form-group">
+                    <label class="form-label">Montant retenu (max ${fmtMoney(montantCaution)})</label>
+                    <input class="form-control" id="ci-montant-det" type="number" min="0.01" max="${montantCaution}" step="0.01" value="${montantCaution}" required />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description des dégâts</label>
+                    <textarea class="form-control" id="ci-notes-det" rows="3" placeholder="Décrivez les dégâts constatés…"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-ghost" onclick="closeModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Confirmer la retenue</button>
+                </div>
+            </form>
+        `);
+        document.getElementById('form-caution-use-det').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const montantUtilise = parseFloat(document.getElementById('ci-montant-det').value);
+            const notes = document.getElementById('ci-notes-det').value.trim();
+            const statut = montantUtilise >= montantCaution ? 'UTILISEE_TOTALE' : 'UTILISEE_PARTIELLE';
+            try {
+                await api(`/sejours/${s.id}/caution`, {
+                    method: 'PATCH',
+                    body: { caution_statut: statut, caution_montant_utilise: montantUtilise, caution_notes: notes || null }
+                });
+                toast('Caution retenue');
+                closeModal();
+                onRefresh();
+            } catch (e) { toast(e.message, 'error'); }
+        });
+    });
   }
 
   function showForm(sej = null, units = [], props = [], locs = []) {
