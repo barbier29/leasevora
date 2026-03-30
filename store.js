@@ -59,8 +59,6 @@ async function pushToSupabase(data) {
     }
 }
 
-module.exports.syncFromSupabase = syncFromSupabase;
-
 const DEFAULT_CATEGORIES = [
     { id: 1,  name: 'Loyer mensuel',                    kind: 'IN'  },
     { id: 2,  name: 'Revenus divers',                   kind: 'IN'  },
@@ -258,4 +256,4 @@ function nextId(data, table) {
     return data._seq[table];
 }
 
-module.exports = { load, save, nextId };
+module.exports = { load, save, nextId, syncFromSupabase };
