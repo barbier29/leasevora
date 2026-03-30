@@ -3,7 +3,7 @@ const router = express.Router();
 const { load, save, nextId } = require('../store');
 const { requireRole, requireAuth } = require('../middleware/auth');
 
-const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE');
+const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT', 'TECHNICIEN');
 
 function enrich(t, data) {
     const prop = data.properties.find(p => p.id === t.property_id) || {};
@@ -40,8 +40,8 @@ router.get('/:id', requireAuth, (req, res) => {
     res.json(enrich(t, data));
 });
 
-// POST create — tous les rôles (l'employé peut signaler un travail)
-router.post('/', (req, res) => {
+// POST create — tous les rôles authentifiés
+router.post('/', requireAuth, (req, res) => {
     const {
         property_id, unit_id, titre, description, date, statut, priorite, type_travail,
         prestataire, contact_prestataire, montant_devis, montant_facture, transaction_id,
@@ -81,8 +81,8 @@ router.post('/', (req, res) => {
     res.status(201).json(enrich(t, data));
 });
 
-// PUT update — tous les rôles (l'employé peut mettre à jour le statut)
-router.put('/:id', (req, res) => {
+// PUT update — tous les rôles authentifiés
+router.put('/:id', requireAuth, (req, res) => {
     const {
         property_id, unit_id, titre, description, date, statut, priorite, type_travail,
         prestataire, contact_prestataire, montant_devis, montant_facture, transaction_id,
@@ -140,7 +140,7 @@ router.put('/:id', (req, res) => {
 // PATCH /:id/statut — avancement rapide du statut (tous les rôles)
 const STATUTS_VALIDES = ['A_FAIRE', 'PRESTATAIRE_CONTACTE', 'DEVIS_RECU', 'EN_COURS', 'TERMINE', 'ANNULE'];
 
-router.patch('/:id/statut', (req, res) => {
+router.patch('/:id/statut', requireAuth, (req, res) => {
     const { statut, note } = req.body;
     if (!statut) return res.status(400).json({ error: 'statut requis' });
     if (!STATUTS_VALIDES.includes(statut))

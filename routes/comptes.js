@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { load, save } = require('../store');
-const { requireRole, requireAuth } = require('../middleware/auth');
+const { requireRole, requireAuth, denyRoles } = require('../middleware/auth');
 
 const PROP = requireRole('PROPRIETAIRE');
+const NO_AGENT_TECH = denyRoles('AGENT', 'TECHNICIEN');
 
-// GET /api/comptes — liste tous les comptes actifs (authentifié)
-router.get('/', requireAuth, (req, res) => {
+// GET /api/comptes — PROPRIETAIRE + GESTIONNAIRE uniquement
+router.get('/', requireAuth, NO_AGENT_TECH, (req, res) => {
     const data = load();
     res.json((data.comptes || []).sort((a, b) => a.id - b.id));
 });

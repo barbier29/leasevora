@@ -46,6 +46,22 @@ app.use('/api', (req, res, next) => {
     }
     next();
 });
+
+// Compte démo : données fictives isolées — intercepter les GET
+const demoData = require('./demo-data');
+app.use('/api', (req, res, next) => {
+    if (req.user?.login === 'demo' && req.method === 'GET') {
+        // Extraire le nom de la route (ex: /properties -> "properties", /finance/income-statement -> "finance")
+        const route = req.path.replace(/^\//, '').split('/')[0];
+        if (demoData[route]) {
+            const handler = demoData[route];
+            // Les handlers peuvent être des fonctions (dynamiques) ou des données statiques
+            const result = typeof handler === 'function' ? handler(req.query?.month) : handler;
+            return res.json(result);
+        }
+    }
+    next();
+});
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/properties', require('./routes/properties'));
 app.use('/api/units', require('./routes/units'));

@@ -95,4 +95,14 @@ function requireRole(...roles) {
     };
 }
 
-module.exports = { hashPwd, createToken, sessions, seedAdmin, seedDemo, requireAuth, requireRole, requireNotDemo };
+// Middleware: deny specific roles (blacklist approach)
+function denyRoles(...roles) {
+    return (req, res, next) => {
+        if (roles.includes(req.user?.role)) {
+            return res.status(403).json({ error: 'Accès refusé — droits insuffisants' });
+        }
+        next();
+    };
+}
+
+module.exports = { hashPwd, createToken, sessions, seedAdmin, seedDemo, requireAuth, requireRole, requireNotDemo, denyRoles };

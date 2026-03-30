@@ -7,7 +7,9 @@ router.get('/', requireAuth, (req, res) => {
     const q = (req.query.q || '').toLowerCase().trim();
     if (q.length < 2) return res.json({ properties: [], units: [], locataires: [], sejours: [] });
     const data = load();
+    const role = req.user?.role;
 
+    // Properties et units : accessibles à tous les rôles (lecture seule)
     const properties = data.properties
         .filter(p => p.name?.toLowerCase().includes(q) || p.address?.toLowerCase().includes(q))
         .slice(0, 5)
@@ -21,12 +23,13 @@ router.get('/', requireAuth, (req, res) => {
             return { id: u.id, label: u.label, type: u.type, property_name: prop?.name || '' };
         });
 
-    const locataires = data.locataires
+    // Locataires et séjours : pas pour TECHNICIEN
+    const locataires = role === 'TECHNICIEN' ? [] : data.locataires
         .filter(l => (l.nom + ' ' + (l.prenom||'')).toLowerCase().includes(q) || l.telephone?.includes(q) || l.email?.toLowerCase().includes(q))
         .slice(0, 5)
         .map(l => ({ id: l.id, nom: l.nom, prenom: l.prenom, telephone: l.telephone }));
 
-    const sejours = data.sejours
+    const sejours = role === 'TECHNICIEN' ? [] : data.sejours
         .filter(s => s.locataire?.toLowerCase().includes(q) || s.notes?.toLowerCase().includes(q))
         .slice(0, 5)
         .map(s => {

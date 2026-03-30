@@ -1,12 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const { load } = require('../store');
+const { denyRoles } = require('../middleware/auth');
 
-router.get('/', (req, res) => {
+const NO_TECH = denyRoles('TECHNICIEN');
+
+router.get('/', NO_TECH, (req, res) => {
   const now = new Date();
   const month = req.query.month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const data = load();
-  const isEmploye = req.user.role === 'EMPLOYE';
+  const isRestricted = ['EMPLOYE', 'AGENT'].includes(req.user.role);
 
   // ── Taux d'occupation & travaux (tous les rôles) ──────────────────────────
   const totalUnits = data.units.length;
@@ -16,11 +19,11 @@ router.get('/', (req, res) => {
   // ── Séjours en cours (tous les rôles) ─────────────────────────────────────
   const sejoursEnCours = data.sejours.filter(s => s.statut === 'EN_COURS').length;
 
-  // Vue restreinte pour l'employé — pas de données financières
-  if (isEmploye) {
+  // Vue restreinte pour EMPLOYE et AGENT — pas de données financières sensibles
+  if (isRestricted) {
     return res.json({
       month,
-      role: 'EMPLOYE',
+      role: req.user.role,
       tauxOccupation: totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0,
       totalUnits, occupiedUnits,
       travauxOuverts,

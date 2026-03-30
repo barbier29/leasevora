@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { load, save, nextId } = require('../store');
-const { requireRole } = require('../middleware/auth');
+const { requireRole, denyRoles } = require('../middleware/auth');
 
 const OWNER = requireRole('PROPRIETAIRE');
+const NO_TECH = denyRoles('TECHNICIEN');
 
-router.get('/', (req, res) => {
+router.get('/', NO_TECH, (req, res) => {
     const data = load();
     res.json([...data.categories].sort((a, b) => a.kind.localeCompare(b.kind) || a.name.localeCompare(b.name)));
 });

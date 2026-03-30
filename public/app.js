@@ -97,20 +97,20 @@ window.isMgr = () => ['PROPRIETAIRE', 'GESTIONNAIRE'].includes(window.CURRENT_US
 
 // Role-based page access
 const PAGE_ROLES = {
-    dashboard:    ['PROPRIETAIRE', 'GESTIONNAIRE', 'EMPLOYE'],
-    properties:   ['PROPRIETAIRE', 'GESTIONNAIRE'],
-    units:        ['PROPRIETAIRE', 'GESTIONNAIRE', 'EMPLOYE'],
-    locataires:   ['PROPRIETAIRE', 'GESTIONNAIRE', 'EMPLOYE'],
-    sejours:      ['PROPRIETAIRE', 'GESTIONNAIRE', 'EMPLOYE'],
-    calendrier:   ['PROPRIETAIRE', 'GESTIONNAIRE', 'EMPLOYE'],
-    transactions: ['PROPRIETAIRE'],
+    dashboard:    ['PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT', 'EMPLOYE'],
+    properties:   ['PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT', 'TECHNICIEN'],
+    units:        ['PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT', 'TECHNICIEN', 'EMPLOYE'],
+    locataires:   ['PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT', 'EMPLOYE'],
+    sejours:      ['PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT', 'EMPLOYE'],
+    calendrier:   ['PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT', 'EMPLOYE'],
+    transactions: ['PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT'],
     caisse:       ['PROPRIETAIRE'],
     comptes:      ['PROPRIETAIRE'],
     finance:      ['PROPRIETAIRE'],
-    travaux:      ['PROPRIETAIRE', 'GESTIONNAIRE', 'EMPLOYE'],
-    compteurs:    ['PROPRIETAIRE', 'GESTIONNAIRE', 'EMPLOYE'],
-    categories:   ['PROPRIETAIRE'],
-    notes:        ['PROPRIETAIRE', 'GESTIONNAIRE', 'EMPLOYE'],
+    travaux:      ['PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT', 'TECHNICIEN', 'EMPLOYE'],
+    compteurs:    ['PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT', 'TECHNICIEN', 'EMPLOYE'],
+    categories:   ['PROPRIETAIRE', 'AGENT'],
+    notes:        ['PROPRIETAIRE', 'GESTIONNAIRE', 'TECHNICIEN', 'EMPLOYE'],
     users:        ['PROPRIETAIRE'],
     paiements:    ['PROPRIETAIRE', 'GESTIONNAIRE'],
 };
@@ -196,6 +196,18 @@ async function bootApp(user) {
     const loginOverlay = document.getElementById('login-overlay');
     if (loginOverlay) loginOverlay.style.display = 'none';
 
+    // Bannière mode démo
+    const oldBanner = document.getElementById('demo-banner');
+    if (oldBanner) oldBanner.remove();
+    if (user.login === 'demo') {
+        const banner = document.createElement('div');
+        banner.id = 'demo-banner';
+        banner.innerHTML = '🔒 Mode démo — Données fictives, lecture seule · <a href="#" onclick="event.preventDefault();localStorage.removeItem(\'pm_token\');localStorage.removeItem(\'pm_user\');location.reload()" style="color:#fff;text-decoration:underline">Se déconnecter</a>';
+        banner.style.cssText = 'background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;padding:10px 16px;text-align:center;font-size:13px;font-weight:500;border-radius:0 0 12px 12px;position:relative;z-index:10';
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) mainContent.prepend(banner);
+    }
+
     // Show/hide nav items based on role
     document.querySelectorAll('.nav-item').forEach(el => {
         const page = el.dataset.page;
@@ -205,7 +217,7 @@ async function bootApp(user) {
     // Update user badge in sidebar
     const badge = document.getElementById('user-badge');
     if (badge) {
-        const roleLabels = { PROPRIETAIRE: '👑 Propriétaire', GESTIONNAIRE: '🔑 Gestionnaire', EMPLOYE: '👷 Employé' };
+        const roleLabels = { PROPRIETAIRE: '👑 Propriétaire', GESTIONNAIRE: '🔑 Gestionnaire', AGENT: '🏠 Agent', TECHNICIEN: '🔧 Technicien', EMPLOYE: '👷 Employé' };
         badge.innerHTML = `
       <div style="font-size:12px;font-weight:600">${user.prenom ? user.prenom + ' ' : ''}${user.nom}</div>
       <div style="font-size:10px;color:var(--text-3)">${roleLabels[user.role] || user.role}</div>

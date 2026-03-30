@@ -110,6 +110,23 @@ async function renderTransactionsPage(container) {
       document.getElementById(id)?.addEventListener('input', applyFilters);
       document.getElementById(id)?.addEventListener('change', applyFilters);
     });
+
+    // Filtrer les catégories du filtre selon le type IN/OUT sélectionné
+    document.getElementById('filter-kind')?.addEventListener('change', () => {
+      const kindVal = document.getElementById('filter-kind').value;
+      const catSelect = document.getElementById('filter-cat');
+      const prevCat = catSelect.value;
+      const filtered = kindVal ? cats.filter(c => c.kind === kindVal) : cats;
+      catSelect.innerHTML = '<option value="">Toutes catégories</option>' +
+        filtered.map(c => `<option value="${c.id}">${c.kind === 'IN' ? '↑' : '↓'} ${c.name}</option>`).join('');
+      // Restaurer la sélection si elle est encore valide
+      if (filtered.some(c => String(c.id) === prevCat)) {
+        catSelect.value = prevCat;
+      } else {
+        catSelect.value = '';
+      }
+      applyFilters();
+    });
   }
 
   async function showForm(txn = null, props = [], cats = [], units = [], sejours = []) {
@@ -191,9 +208,32 @@ async function renderTransactionsPage(container) {
       </form>
     `);
 
-    // Mise à jour automatique source selon type
+    // Fonction pour filtrer les catégories du formulaire selon le type IN/OUT
+    function updateFormCategories(selectedKind, preserveSelection = false) {
+      const catSelect = document.getElementById('f-cat');
+      const prevVal = catSelect.value;
+      const filtered = selectedKind ? cats.filter(c => c.kind === selectedKind) : cats;
+      catSelect.innerHTML = '<option value="">Sélectionner…</option>' +
+        filtered.map(c => `<option value="${c.id}">${c.name} (${c.kind === 'IN' ? 'Recette' : 'Dépense'})</option>`).join('');
+      // Restaurer la sélection uniquement si elle est encore valide
+      if (preserveSelection && filtered.some(c => String(c.id) === prevVal)) {
+        catSelect.value = prevVal;
+      }
+    }
+
+    // Filtrage initial des catégories selon le type courant
+    const initialKind = document.getElementById('f-kind').value;
+    updateFormCategories(initialKind, true);
+    // Restaurer la sélection de catégorie si on est en mode édition
+    if (txn?.category_id) {
+      document.getElementById('f-cat').value = txn.category_id;
+    }
+
+    // Mise à jour automatique source et catégories selon type
     document.getElementById('f-kind').addEventListener('change', e => {
       document.getElementById('f-source').value = e.target.value === 'OUT' ? 'CAISSE' : 'BANQUE';
+      // Filtrer les catégories et réinitialiser la sélection
+      updateFormCategories(e.target.value, false);
     });
 
     // Chargement des unités selon propriété

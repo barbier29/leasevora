@@ -1,16 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const { load, save, nextId } = require('../store');
-const { requireRole } = require('../middleware/auth');
+const { requireRole, denyRoles } = require('../middleware/auth');
 
-const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE');
+const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT');
+const NO_TECH = denyRoles('TECHNICIEN');
 
-router.get('/', (req, res) => {
+router.get('/', NO_TECH, (req, res) => {
     const data = load();
     res.json([...data.locataires].sort((a, b) => a.nom.localeCompare(b.nom)));
 });
 
-router.get('/:id', (req, res) => {
+router.get('/:id', NO_TECH, (req, res) => {
     const data = load();
     const l = data.locataires.find(l => l.id === Number(req.params.id));
     if (!l) return res.status(404).json({ error: 'Non trouvé' });

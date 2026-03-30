@@ -3,8 +3,8 @@ const router = express.Router();
 const { load, save, nextId } = require('../store');
 const { requireRole } = require('../middleware/auth');
 
-// Transactions financières — PROPRIETAIRE uniquement
-const MGR = requireRole('PROPRIETAIRE');
+// Transactions financières — PROPRIETAIRE, GESTIONNAIRE, AGENT
+const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT');
 
 function enrich(t, data) {
     const cat = data.categories.find(c => c.id === t.category_id) || {};

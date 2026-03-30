@@ -54,6 +54,11 @@ router.post('/login', (req, res) => {
 
 // POST /api/auth/change-password
 router.post('/change-password', requireAuth, async (req, res) => {
+    // Bloquer le changement de mot de passe pour le compte démo
+    if (req.user?.login === 'demo') {
+        return res.status(403).json({ error: '🔒 Compte démo — modification du mot de passe interdite.' });
+    }
+
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword)

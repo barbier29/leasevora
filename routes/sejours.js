@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { load, save, nextId } = require('../store');
-const { requireRole, requireAuth } = require('../middleware/auth');
+const { requireRole, requireAuth, denyRoles } = require('../middleware/auth');
 
-const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE');
+const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT');
+const NO_TECH = denyRoles('TECHNICIEN');
 
 // Calcule le total théorique d'un séjour selon son tarif et ses dates
 function computeTotal(s) {
@@ -56,8 +57,8 @@ function enrich(s, data) {
     };
 }
 
-// GET all — tous les rôles
-router.get('/', requireAuth, (req, res) => {
+// GET all — tous sauf TECHNICIEN
+router.get('/', requireAuth, NO_TECH, (req, res) => {
     const { unit_id, property_id } = req.query;
     const data = load();
     let list = data.sejours;
@@ -70,16 +71,16 @@ router.get('/', requireAuth, (req, res) => {
     res.json(list.map(s => enrich(s, data)));
 });
 
-// GET single — tous les rôles
-router.get('/:id', requireAuth, (req, res) => {
+// GET single — tous sauf TECHNICIEN
+router.get('/:id', requireAuth, NO_TECH, (req, res) => {
     const data = load();
     const s = data.sejours.find(s => s.id === Number(req.params.id));
     if (!s) return res.status(404).json({ error: 'Non trouvé' });
     res.json(enrich(s, data));
 });
 
-// GET /sejours/:id/solde — détail des paiements (tous rôles)
-router.get('/:id/solde', requireAuth, (req, res) => {
+// GET /sejours/:id/solde — détail des paiements (tous sauf TECHNICIEN)
+router.get('/:id/solde', requireAuth, NO_TECH, (req, res) => {
     const data = load();
     const s = data.sejours.find(s => s.id === Number(req.params.id));
     if (!s) return res.status(404).json({ error: 'Non trouvé' });
@@ -134,8 +135,8 @@ router.patch('/:id/caution', MGR, (req, res) => {
     res.json(enrich(s, data));
 });
 
-// POST create — tous les rôles authentifiés
-router.post('/', requireAuth, (req, res) => {
+// POST create — tous sauf TECHNICIEN
+router.post('/', requireAuth, NO_TECH, (req, res) => {
     const { unit_id, date_debut, date_fin,
             heure_entree, heure_sortie, type_tarif, montant, statut, notes,
             caution_montant, caution_date } = req.body;
@@ -205,8 +206,8 @@ router.post('/', requireAuth, (req, res) => {
     res.status(201).json(enrich(sejour, data));
 });
 
-// PUT update — tous les rôles authentifiés
-router.put('/:id', requireAuth, (req, res) => {
+// PUT update — tous sauf TECHNICIEN
+router.put('/:id', requireAuth, NO_TECH, (req, res) => {
     const { unit_id, locataire, locataire_id, date_debut, date_fin,
             heure_entree, heure_sortie, type_tarif, montant, statut, notes,
             caution_montant, caution_date } = req.body;
@@ -260,8 +261,8 @@ router.delete('/:id', MGR, (req, res) => {
     res.json({ success: true });
 });
 
-// GET quittance de loyer
-router.get('/:id/quittance', requireAuth, (req, res) => {
+// GET quittance de loyer — tous sauf TECHNICIEN
+router.get('/:id/quittance', requireAuth, NO_TECH, (req, res) => {
     const data = load();
     const s = data.sejours.find(s => s.id === Number(req.params.id));
     if (!s) return res.status(404).json({ error: 'Non trouvé' });
@@ -273,8 +274,8 @@ router.get('/:id/quittance', requireAuth, (req, res) => {
     res.json({ sejour: s, unit, property: prop, locataire: loc, paiements: txns, total_paye: totalPaye });
 });
 
-// POST renouveler un séjour
-router.post('/:id/renouveler', requireAuth, (req, res) => {
+// POST renouveler un séjour — tous sauf TECHNICIEN
+router.post('/:id/renouveler', requireAuth, NO_TECH, (req, res) => {
     const data = load();
     const s = data.sejours.find(s => s.id === Number(req.params.id));
     if (!s) return res.status(404).json({ error: 'Non trouvé' });

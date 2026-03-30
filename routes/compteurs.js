@@ -3,7 +3,7 @@ const router = express.Router();
 const { load, save, nextId } = require('../store');
 const { requireRole, requireAuth } = require('../middleware/auth');
 
-const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE');
+const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT', 'TECHNICIEN');
 
 function enrich(c, data) {
     const unit = data.units.find(u => u.id === c.unit_id) || {};
@@ -53,8 +53,8 @@ router.get('/summary', requireAuth, (req, res) => {
     res.json(summary);
 });
 
-// POST create — tous les rôles (l'employé peut relever les compteurs)
-router.post('/', (req, res) => {
+// POST create — tous les rôles authentifiés
+router.post('/', requireAuth, (req, res) => {
     const { unit_id, type, date, valeur, notes } = req.body;
     if (!unit_id || !type || !date || valeur === undefined)
         return res.status(400).json({ error: 'unit_id, type, date, valeur requis' });
@@ -81,8 +81,8 @@ router.get('/:id', requireAuth, (req, res) => {
     res.json(enrich(c, data));
 });
 
-// PUT update — tous les rôles
-router.put('/:id', (req, res) => {
+// PUT update — tous les rôles authentifiés
+router.put('/:id', requireAuth, (req, res) => {
     const { unit_id, type, date, valeur, notes } = req.body;
     const data = load();
     const idx = data.compteurs.findIndex(c => c.id === Number(req.params.id));
