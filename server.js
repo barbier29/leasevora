@@ -6,7 +6,7 @@ const path = require('path');
 
 require('./db');
 
-const { seedAdmin, requireAuth } = require('./middleware/auth');
+const { seedAdmin, seedDemo, requireAuth, requireNotDemo } = require('./middleware/auth');
 // seedAdmin() est appelé APRÈS syncFromSupabase() dans app.listen
 
 const app = express();
@@ -38,6 +38,14 @@ app.use('/api/invite', require('./routes/invite')); // gère son propre auth en 
 
 // All other /api routes require authentication
 app.use('/api', requireAuth);
+
+// Compte démo : lecture seule — bloquer toutes les écritures
+app.use('/api', (req, res, next) => {
+    if (req.user?.login === 'demo' && ['POST','PUT','PATCH','DELETE'].includes(req.method)) {
+        return res.status(403).json({ error: '🔒 Compte démo — lecture seule. Aucune modification possible.' });
+    }
+    next();
+});
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/properties', require('./routes/properties'));
 app.use('/api/units', require('./routes/units'));
@@ -108,7 +116,9 @@ const { syncFromSupabase } = require('./store');
 app.listen(PORT, async () => {
     // 1. Restaurer les données depuis Supabase EN PREMIER
     await syncFromSupabase();
-    // 2. Créer l'admin seulement si aucun utilisateur n'existe (après sync)
+    // 2. Créer l'admin si nécessaire (après sync)
     seedAdmin();
+    // 3. Toujours s'assurer que le compte démo existe
+    seedDemo();
     console.log(`\n🏢  Leasevora disponible sur http://localhost:${PORT}\n`);
 });

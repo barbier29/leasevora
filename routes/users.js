@@ -71,6 +71,7 @@ router.delete('/:id', requireRole('PROPRIETAIRE'), (req, res) => {
     if (req.user.id === id) return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' });
     const data = load();
     const target = data.users.find(u => u.id === id);
+    if (target?.login === 'demo') return res.status(400).json({ error: 'Le compte démo ne peut pas être supprimé' });
     if (!target) return res.status(404).json({ error: 'Non trouvé' });
     if (target.role === 'PROPRIETAIRE') {
         const proprietairesRestants = data.users.filter(u => u.role === 'PROPRIETAIRE' && u.id !== id);

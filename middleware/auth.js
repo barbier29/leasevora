@@ -36,6 +36,37 @@ function seedAdmin() {
     }
 }
 
+// Seed compte démo — toujours présent, jamais supprimable
+function seedDemo() {
+    const data = load();
+    const exists = data.users.find(u => u.login === 'demo');
+    if (!exists) {
+        data.users.push({
+            id: nextId(data, 'users'),
+            nom: 'Démo',
+            prenom: 'Compte',
+            email: 'demo@leasevora.com',
+            login: 'demo',
+            password: hashPwd('demo123'),
+            role: 'GESTIONNAIRE',
+            permissions: ['dashboard','properties','units','locataires','sejours','calendrier','travaux','compteurs'],
+            actif: true,
+            is_demo: true,
+            created_at: new Date().toISOString(),
+        });
+        save(data);
+        console.log('✅  Compte démo créé — login: demo / mot de passe: demo123');
+    }
+}
+
+// Middleware: bloquer toutes les modifications pour le compte démo
+function requireNotDemo(req, res, next) {
+    if (req.user && req.user.login === 'demo') {
+        return res.status(403).json({ error: '🔒 Compte démo — lecture seule. Aucune modification possible.' });
+    }
+    next();
+}
+
 // Express middleware: requires valid token
 function requireAuth(req, res, next) {
     const header = req.headers['authorization'] || '';
@@ -64,4 +95,4 @@ function requireRole(...roles) {
     };
 }
 
-module.exports = { hashPwd, createToken, sessions, seedAdmin, requireAuth, requireRole };
+module.exports = { hashPwd, createToken, sessions, seedAdmin, seedDemo, requireAuth, requireRole, requireNotDemo };
