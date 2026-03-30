@@ -175,7 +175,6 @@ async function renderTransactionsPage(container) {
             <label class="form-label">Catégorie *</label>
             <select class="form-control" id="f-cat" required>
               <option value="">Sélectionner…</option>
-              ${cats.map(c => `<option value="${c.id}" ${txn?.category_id == c.id ? 'selected' : ''}>${c.name} (${c.kind === 'IN' ? 'Recette' : 'Dépense'})</option>`).join('')}
             </select>
           </div>
           <div class="form-group">
@@ -214,7 +213,7 @@ async function renderTransactionsPage(container) {
       const prevVal = catSelect.value;
       const filtered = selectedKind ? cats.filter(c => c.kind === selectedKind) : cats;
       catSelect.innerHTML = '<option value="">Sélectionner…</option>' +
-        filtered.map(c => `<option value="${c.id}">${c.name} (${c.kind === 'IN' ? 'Recette' : 'Dépense'})</option>`).join('');
+        filtered.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
       // Restaurer la sélection uniquement si elle est encore valide
       if (preserveSelection && filtered.some(c => String(c.id) === prevVal)) {
         catSelect.value = prevVal;
