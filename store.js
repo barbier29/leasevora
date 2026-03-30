@@ -1,13 +1,65 @@
 const fs = require('fs');
 const path = require('path');
 
-const FILE = path.join(__dirname, 'data.json');
+const FILE    = path.join(__dirname, 'data.json');
 const EXAMPLE = path.join(__dirname, 'data.example.json');
 
-// Sur Railway/prod : si data.json absent, initialiser depuis data.example.json
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_KEY = process.env.SUPABASE_KEY || '';
+const USE_SUPABASE = !!(SUPABASE_URL && SUPABASE_KEY);
+
+// Sur first boot sans data.json, initialiser depuis data.example.json
 if (!fs.existsSync(FILE) && fs.existsSync(EXAMPLE)) {
     fs.copyFileSync(EXAMPLE, FILE);
 }
+
+// ── Supabase sync ──────────────────────────────────────────────────────────
+// Stratégie : local file = cache rapide (sync), Supabase = source de vérité (async)
+// Au démarrage : on pull Supabase → écrit dans data.json
+// À chaque save() : on écrit data.json + push Supabase en fire-and-forget
+
+async function syncFromSupabase() {
+    if (!USE_SUPABASE) return;
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/store?id=eq.1&select=data`, {
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+        });
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length > 0 && rows[0].data) {
+            fs.writeFileSync(FILE, JSON.stringify(rows[0].data, null, 2));
+            console.log('✅ Données restaurées depuis Supabase');
+        } else {
+            // Première fois : pousser data.json vers Supabase
+            if (fs.existsSync(FILE)) {
+                const data = JSON.parse(fs.readFileSync(FILE, 'utf8'));
+                await pushToSupabase(data);
+                console.log('✅ Données initiales envoyées à Supabase');
+            }
+        }
+    } catch (e) {
+        console.error('⚠️  Supabase sync failed:', e.message);
+    }
+}
+
+async function pushToSupabase(data) {
+    if (!USE_SUPABASE) return;
+    try {
+        await fetch(`${SUPABASE_URL}/rest/v1/store`, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'resolution=merge-duplicates'
+            },
+            body: JSON.stringify({ id: 1, data, updated_at: new Date().toISOString() })
+        });
+    } catch (e) {
+        console.error('⚠️  Supabase write failed:', e.message);
+    }
+}
+
+module.exports.syncFromSupabase = syncFromSupabase;
 
 const DEFAULT_CATEGORIES = [
     { id: 1,  name: 'Loyer mensuel',                    kind: 'IN'  },
@@ -196,6 +248,8 @@ function load() {
 
 function save(data) {
     fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
+    // Push vers Supabase en arrière-plan (fire & forget)
+    pushToSupabase(data);
 }
 
 function nextId(data, table) {

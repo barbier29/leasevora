@@ -11,7 +11,7 @@ seedAdmin();
 
 const app = express();
 const corsOptions = process.env.NODE_ENV === 'production'
-    ? { origin: process.env.ALLOWED_ORIGIN || false, credentials: true }
+    ? { origin: process.env.ALLOWED_ORIGIN || true, credentials: true }
     : { origin: true, credentials: true };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -66,6 +66,10 @@ if (!process.env.JWT_SECRET) {
     console.warn('⚠️  JWT_SECRET non défini dans .env — utilisation de la clé par défaut (non sécurisé en production)');
 }
 
-app.listen(PORT, () => {
+const { syncFromSupabase } = require('./store');
+
+app.listen(PORT, async () => {
     console.log(`\n🏢  Leasevora disponible sur http://localhost:${PORT}\n`);
+    // Restaurer les données depuis Supabase au démarrage
+    await syncFromSupabase();
 });
