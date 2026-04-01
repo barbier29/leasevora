@@ -263,6 +263,81 @@ function load() {
             if (!('description'        in p)) p.description        = null;
         });
 
+        // ── Seed one-shot : immeubles GALAXY et ATK ──────────────────────
+        if (!data.properties.find(p => p.name === 'GALAXY')) {
+            const now = new Date().toISOString();
+            if (!data._seq) data._seq = {};
+
+            const galaxyId = nextId(data, 'properties');
+            data.properties.push({
+                id: galaxyId, name: 'GALAXY', address: '', nb_etages: 3,
+                annee_construction: null, surface_totale: null,
+                description: 'Immeuble GALAXY', created_at: now,
+            });
+
+            const galaxyUnits = [
+                { label: '101', nb_chambres: 2, nb_pieces: 3, etage: 1 },
+                { label: '102', nb_chambres: 2, nb_pieces: 3, etage: 1 },
+                { label: '201', nb_chambres: 2, nb_pieces: 3, etage: 2 },
+                { label: '202', nb_chambres: 2, nb_pieces: 3, etage: 2 },
+                { label: '203', nb_chambres: 1, nb_pieces: 2, etage: 2 },
+                { label: '204', nb_chambres: 1, nb_pieces: 2, etage: 2 },
+                { label: '205', nb_chambres: 1, nb_pieces: 2, etage: 2 },
+                { label: '301', nb_chambres: 2, nb_pieces: 3, etage: 3 },
+                { label: '302', nb_chambres: 1, nb_pieces: 2, etage: 3 },
+                { label: '303', nb_chambres: 1, nb_pieces: 2, etage: 3 },
+                { label: '304', nb_chambres: 1, nb_pieces: 2, etage: 3 },
+            ];
+            for (const u of galaxyUnits) {
+                data.units.push({
+                    id: nextId(data, 'units'), property_id: galaxyId,
+                    label: u.label, type: 'APPARTEMENT', statut: 'VACANT',
+                    nb_pieces: u.nb_pieces, nb_chambres: u.nb_chambres, nb_sdb: 1,
+                    surface: null, etage: u.etage,
+                    description: `${u.nb_chambres} chambre${u.nb_chambres > 1 ? 's' : ''} salon`,
+                    meuble: false, balcon: true, cave: false, parking_inclus: false,
+                    created_at: now,
+                });
+            }
+            console.log('✅ Seed GALAXY : 11 appartements créés');
+        }
+
+        if (!data.properties.find(p => p.name === 'IMMEUBLE ATK')) {
+            const now = new Date().toISOString();
+            if (!data._seq) data._seq = {};
+
+            const atkId = nextId(data, 'properties');
+            data.properties.push({
+                id: atkId, name: 'IMMEUBLE ATK', address: '', nb_etages: 3,
+                annee_construction: null, surface_totale: null,
+                description: 'Immeuble ATK', created_at: now,
+            });
+
+            const atkUnits = [
+                { label: '001', nb_chambres: 3, nb_pieces: 4, etage: 0 },
+                { label: '101', nb_chambres: 3, nb_pieces: 4, etage: 1 },
+                { label: '102', nb_chambres: 2, nb_pieces: 3, etage: 1 },
+                { label: '103', nb_chambres: 1, nb_pieces: 2, etage: 1 },
+                { label: '201', nb_chambres: 2, nb_pieces: 3, etage: 2 },
+                { label: '202', nb_chambres: 1, nb_pieces: 2, etage: 2 },
+                { label: '203', nb_chambres: 2, nb_pieces: 3, etage: 2 },
+                { label: '204', nb_chambres: 1, nb_pieces: 2, etage: 2 },
+                { label: '301', nb_chambres: 2, nb_pieces: 3, etage: 3 },
+            ];
+            for (const u of atkUnits) {
+                data.units.push({
+                    id: nextId(data, 'units'), property_id: atkId,
+                    label: u.label, type: 'APPARTEMENT', statut: 'VACANT',
+                    nb_pieces: u.nb_pieces, nb_chambres: u.nb_chambres, nb_sdb: 1,
+                    surface: null, etage: u.etage,
+                    description: `${u.nb_chambres} chambre${u.nb_chambres > 1 ? 's' : ''} salon`,
+                    meuble: false, balcon: true, cave: false, parking_inclus: false,
+                    created_at: now,
+                });
+            }
+            console.log('✅ Seed IMMEUBLE ATK : 9 appartements créés');
+        }
+
         return data;
     } catch { return JSON.parse(JSON.stringify(DEFAULT)); }
 }
