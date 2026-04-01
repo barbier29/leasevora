@@ -16,7 +16,7 @@ router.get('/', (req, res) => {
     let units = property_id
         ? data.units.filter(u => u.property_id === Number(property_id))
         : data.units.map(u => withPropName(u, data));
-    res.json(units.sort((a, b) => a.label.localeCompare(b.label)));
+    res.json(units.map(u => ({ ...u, status: u.status || u.statut || 'VACANT' })).sort((a, b) => a.label.localeCompare(b.label)));
 });
 
 router.get('/:id', (req, res) => {

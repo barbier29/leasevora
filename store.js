@@ -199,6 +199,8 @@ function load() {
             if (!('caution_montant_utilise'  in s)) s.caution_montant_utilise   = 0;
             if (!('caution_notes'            in s)) s.caution_notes             = null;
             if (!('caution_historique'       in s)) s.caution_historique        = [];
+            if (!('long_terme' in s)) s.long_terme = false;
+            if (!('jour_paiement' in s)) s.jour_paiement = null; // day of month rent is due (1-31)
         });
         data.transactions.forEach(t => {
             if (!('sejour_id' in t)) t.sejour_id = null;

@@ -4,6 +4,7 @@ async function renderSejoursPage(container) {
     EN_COURS: { label: 'En cours', cls: 'badge-occupied' },
     TERMINE: { label: 'Terminé', cls: 'badge-vacant' },
     ANNULE: { label: 'Annulé', cls: 'badge-out' },
+    LONG_TERME: { label: 'Long terme', cls: 'badge-longterme' },
   };
   const TARIFS = { JOURNALIER: 'Journalier', MENSUEL: 'Mensuel', FORFAIT: 'Forfait période' };
   const PAIEMENT_STATUTS = {
@@ -95,7 +96,7 @@ async function renderSejoursPage(container) {
       const loc = locs.find(l => l.id === s.locataire_id);
       const paiSt = PAIEMENT_STATUTS[s.statut_paiement || 'EN_ATTENTE'];
       const cauSt = CAUTION_STATUTS[s.caution_statut] || CAUTION_STATUTS['AUCUNE'];
-      return `<tr class="sej-row" data-id="${s.id}" style="cursor:pointer">
+      return `<tr class="sej-row" data-id="${s.id}" style="cursor:pointer${s.statut === 'LONG_TERME' ? ';border-left:3px solid var(--accent)' : ''}">
                 <td>
                   <strong>${s.locataire}</strong>
                   ${loc ? `<div style="font-size:11px;color:var(--text-3)">${loc.prenom ? loc.prenom + ' ' : ''}${loc.nom}${loc.telephone ? ' · ' + loc.telephone : ''}</div>` : ''}
@@ -234,6 +235,16 @@ async function renderSejoursPage(container) {
           ${['PAYEE', 'UTILISEE_PARTIELLE'].includes(s.caution_statut) ? `<button class="btn btn-ghost btn-sm" id="btn-caution-restituer-det" style="color:var(--green)">✅ Restituer</button>` : ''}
           ${['PAYEE', 'EN_ATTENTE'].includes(s.caution_statut) ? `<button class="btn btn-ghost btn-sm" id="btn-caution-utiliser-det" style="color:var(--red)">🔧 Retenir pour dégâts</button>` : ''}
         </div>` : ''}
+      </div>` : ''}
+
+      <!-- Bloc échéancier long terme -->
+      ${s.statut === 'LONG_TERME' || s.long_terme ? `
+      <div id="echeancier-container" style="background:var(--bg-2);border-radius:8px;padding:14px;margin-bottom:16px;border:1px solid var(--accent);border-left:3px solid var(--accent)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent)">CONTRAT LONG TERME</div>
+          <button class="btn btn-danger btn-sm" id="btn-resilier" style="font-size:11px">Résilier le contrat</button>
+        </div>
+        <div id="echeancier-content" style="color:var(--text-3);font-size:12px">Chargement de l'échéancier…</div>
       </div>` : ''}
 
       ${loc ? `<div style="padding:10px;background:var(--bg-2);border-radius:6px;margin-bottom:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
@@ -384,6 +395,95 @@ async function renderSejoursPage(container) {
             } catch (e) { toast(e.message, 'error'); }
         });
     });
+
+    // Load échéancier for long-terme
+    if (s.statut === 'LONG_TERME' || s.long_terme) {
+        try {
+            const ech = await api(`/sejours/${s.id}/echeancier`);
+            const container = document.getElementById('echeancier-content');
+            if (container && ech) {
+                const STATUT_BADGE = {
+                    PAYE: { label: 'Payé', cls: 'badge-occupied' },
+                    PARTIEL: { label: 'Partiel', cls: 'badge-building' },
+                    IMPAYE: { label: 'Impayé', cls: 'badge-out' },
+                    A_VENIR: { label: 'À venir', cls: 'badge-standalone' },
+                };
+                container.innerHTML = `
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+                        <div style="text-align:center">
+                            <div style="font-size:11px;color:var(--text-3)">Loyer mensuel</div>
+                            <div style="font-size:16px;font-weight:700">${fmtMoney(ech.montant_mensuel)}</div>
+                        </div>
+                        <div style="text-align:center">
+                            <div style="font-size:11px;color:var(--text-3)">Jour de paiement</div>
+                            <div style="font-size:16px;font-weight:700">${ech.jour_paiement || '—'}</div>
+                        </div>
+                        <div style="text-align:center">
+                            <div style="font-size:11px;color:var(--text-3)">Mois impayés</div>
+                            <div style="font-size:16px;font-weight:700;color:${ech.mois_impayes > 0 ? 'var(--red)' : 'var(--green)'}">${ech.mois_impayes}</div>
+                        </div>
+                    </div>
+                    <div style="max-height:250px;overflow-y:auto">
+                        <table style="font-size:12px;width:100%">
+                            <thead><tr>
+                                <th style="padding:6px 8px">Mois</th>
+                                <th style="padding:6px 8px;text-align:right">Dû</th>
+                                <th style="padding:6px 8px;text-align:right">Payé</th>
+                                <th style="padding:6px 8px">Statut</th>
+                                <th style="padding:6px 8px"></th>
+                            </tr></thead>
+                            <tbody>
+                                ${ech.periodes.map(p => {
+                                    const st = STATUT_BADGE[p.statut] || STATUT_BADGE.IMPAYE;
+                                    return `<tr>
+                                        <td style="padding:6px 8px;text-transform:capitalize">${p.label}</td>
+                                        <td style="padding:6px 8px;text-align:right">${fmtMoney(p.montant_du)}</td>
+                                        <td style="padding:6px 8px;text-align:right;color:${p.paye >= p.montant_du ? 'var(--green)' : p.paye > 0 ? 'var(--orange,#f59e0b)' : 'var(--text-3)'};font-weight:600">${fmtMoney(p.paye)}</td>
+                                        <td style="padding:6px 8px"><span class="badge ${st.cls}" style="font-size:10px">${st.label}</span></td>
+                                        <td style="padding:6px 8px;text-align:right">${p.statut === 'IMPAYE' || p.statut === 'PARTIEL' ? `<button class="btn btn-primary btn-sm pay-period-btn" data-month="${p.mois}" data-amount="${p.montant_du - p.paye}" style="font-size:10px;padding:2px 8px">Payer</button>` : ''}</td>
+                                    </tr>`;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                // Bind pay buttons
+                container.querySelectorAll('.pay-period-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const amount = parseFloat(btn.dataset.amount);
+                        const month = btn.dataset.month;
+                        const today = new Date().toISOString().slice(0, 10);
+                        try {
+                            await api('/transactions', { method: 'POST', body: {
+                                date: today,
+                                description: `Loyer ${month} — ${s.locataire}`,
+                                kind: 'IN',
+                                amount,
+                                sejour_id: s.id,
+                                compte_id: 1,
+                            }});
+                            toast('Paiement enregistré');
+                            closeModal();
+                            onRefresh();
+                        } catch (e) { toast(e.message, 'error'); }
+                    });
+                });
+            }
+        } catch (e) { console.error('Échéancier error:', e); }
+
+        // Resilier button
+        document.getElementById('btn-resilier')?.addEventListener('click', async () => {
+            const dateFin = prompt('Date de fin du contrat (AAAA-MM-JJ) :', new Date().toISOString().slice(0, 10));
+            if (!dateFin) return;
+            try {
+                await api(`/sejours/${s.id}/resilier`, { method: 'POST', body: { date_fin: dateFin } });
+                toast('Contrat résilié');
+                closeModal();
+                onRefresh();
+            } catch (e) { toast(e.message, 'error'); }
+        });
+    }
   }
 
   function showForm(sej = null, units = [], props = [], locs = []) {
@@ -470,10 +570,19 @@ async function renderSejoursPage(container) {
             <select class="form-control" id="f-statut">
               <option value="A_VENIR"  ${sej?.statut === 'A_VENIR' ? 'selected' : ''}>À venir</option>
               <option value="EN_COURS" ${sej?.statut === 'EN_COURS' ? 'selected' : ''}>En cours</option>
+              <option value="LONG_TERME" ${sej?.statut === 'LONG_TERME' ? 'selected' : ''}>Long terme</option>
               <option value="TERMINE"  ${sej?.statut === 'TERMINE' ? 'selected' : ''}>Terminé</option>
               <option value="ANNULE"   ${sej?.statut === 'ANNULE' ? 'selected' : ''}>Annulé</option>
             </select>
           </div>
+        </div>
+        <div id="long-terme-fields" style="display:none;background:var(--bg-2);border-radius:8px;padding:14px;margin-bottom:16px;border:1px solid var(--accent);border-left:3px solid var(--accent)">
+          <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:12px">CONTRAT LONG TERME</div>
+          <div class="form-group">
+            <label class="form-label">Jour de paiement mensuel (1-31)</label>
+            <input class="form-control" id="f-jour-paiement" type="number" min="1" max="31" value="${sej?.jour_paiement || ''}" placeholder="Ex: 5 → paie tous les 5 du mois" />
+          </div>
+          <div style="font-size:11px;color:var(--text-3)">Le loyer mensuel correspond au montant saisi ci-dessus. La date de départ est optionnelle (contrat renouvelé automatiquement).</div>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -560,6 +669,25 @@ async function renderSejoursPage(container) {
     tarifSel.addEventListener('change', updateMontantLabel);
     updateMontantLabel();
 
+    // Show/hide long terme fields
+    const statutSel = document.getElementById('f-statut');
+    const ltFields = document.getElementById('long-terme-fields');
+    function updateLtFields() {
+        ltFields.style.display = statutSel.value === 'LONG_TERME' ? '' : 'none';
+        if (statutSel.value === 'LONG_TERME') {
+            document.getElementById('f-tarif').value = 'MENSUEL';
+            updateMontantLabel();
+            // Auto-fill jour_paiement from date_debut if empty
+            const jp = document.getElementById('f-jour-paiement');
+            if (!jp.value) {
+                const debut = document.getElementById('f-debut').value;
+                if (debut) jp.value = new Date(debut).getDate();
+            }
+        }
+    }
+    statutSel.addEventListener('change', updateLtFields);
+    updateLtFields();
+
     document.getElementById('sej-form').addEventListener('submit', async e => {
       e.preventDefault();
 
@@ -605,6 +733,8 @@ async function renderSejoursPage(container) {
         montant: parseFloat(document.getElementById('f-montant').value),
         statut: document.getElementById('f-statut').value,
         notes: document.getElementById('f-notes').value.trim() || null,
+        long_terme: document.getElementById('f-statut').value === 'LONG_TERME',
+        jour_paiement: document.getElementById('f-jour-paiement')?.value || null,
         caution_montant: parseFloat(document.getElementById('f-caution').value) || 0,
         caution_date: document.getElementById('f-caution-date').value || null,
       };

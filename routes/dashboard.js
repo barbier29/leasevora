@@ -13,7 +13,7 @@ router.get('/', NO_TECH, (req, res) => {
 
   // ── Taux d'occupation & travaux (tous les rôles) ──────────────────────────
   const totalUnits = data.units.length;
-  const occupiedUnits = data.units.filter(u => u.status === 'OCCUPIED').length;
+  const occupiedUnits = data.units.filter(u => (u.status || u.statut || 'VACANT') === 'OCCUPIED').length;
   const travauxOuverts = data.travaux.filter(t => ['A_FAIRE', 'EN_COURS'].includes(t.statut)).length;
 
   // ── Séjours en cours (tous les rôles) ─────────────────────────────────────
@@ -50,7 +50,7 @@ router.get('/', NO_TECH, (req, res) => {
       total_in: pts.filter(t => t.kind === 'IN').reduce((s, t) => s + t.amount, 0),
       total_out: pts.filter(t => t.kind === 'OUT').reduce((s, t) => s + t.amount, 0),
       unit_count: units.length,
-      occupied_count: units.filter(u => u.status === 'OCCUPIED').length,
+      occupied_count: units.filter(u => (u.status || u.statut || 'VACANT') === 'OCCUPIED').length,
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
 
@@ -58,7 +58,7 @@ router.get('/', NO_TECH, (req, res) => {
     const prop = data.properties.find(p => p.id === u.property_id) || {};
     const uts = monthTxns.filter(t => t.unit_id === u.id);
     return {
-      id: u.id, label: u.label, status: u.status,
+      id: u.id, label: u.label, status: u.status || u.statut || 'VACANT',
       expected_rent: u.expected_rent,
       property_name: prop.name || '?',
       total_in: uts.filter(t => t.kind === 'IN').reduce((s, t) => s + t.amount, 0),
@@ -71,7 +71,7 @@ router.get('/', NO_TECH, (req, res) => {
     .map(c => c.id);
 
   const alertesLoyers = loyerCatIds.length === 0 ? [] : data.units
-    .filter(u => u.status === 'OCCUPIED')
+    .filter(u => (u.status || u.statut || 'VACANT') === 'OCCUPIED')
     .filter(u => {
       const sejour = data.sejours.find(s => s.unit_id === u.id && s.statut === 'EN_COURS');
       if (!sejour) return false;

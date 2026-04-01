@@ -253,6 +253,8 @@ router.post('/', requireAuth, NO_TECH, (req, res) => {
         caution_notes: null,
         created_at: new Date().toISOString(),
     };
+    sejour.long_terme = req.body.long_terme || false;
+    sejour.jour_paiement = req.body.jour_paiement ? Number(req.body.jour_paiement) : null;
     data.sejours.push(sejour);
     save(data);
     res.status(201).json(enrich(sejour, data));
@@ -301,6 +303,8 @@ router.put('/:id', requireAuth, NO_TECH, (req, res) => {
         caution_statut: cautStatut,
         caution_date: cautMontant > 0 ? (caution_date || data.sejours[idx].caution_date || date_debut) : null,
     };
+    data.sejours[idx].long_terme = req.body.long_terme || false;
+    data.sejours[idx].jour_paiement = req.body.jour_paiement ? Number(req.body.jour_paiement) : null;
     save(data);
     res.json(enrich(data.sejours[idx], data));
 });
@@ -336,6 +340,118 @@ router.get('/:id/facture', requireAuth, NO_TECH, (req, res) => {
         locataire: loc,
         payment,
     });
+});
+
+// GET /sejours/:id/echeancier — échéancier mensuel pour séjours long terme
+router.get('/:id/echeancier', requireAuth, NO_TECH, (req, res) => {
+    const data = load();
+    const s = data.sejours.find(s => s.id === Number(req.params.id));
+    if (!s) return res.status(404).json({ error: 'Non trouvé' });
+
+    const montantMensuel = s.montant;
+    const dateDebut = new Date(s.date_debut);
+    const dateFin = s.date_fin ? new Date(s.date_fin) : new Date(); // if no end, up to today
+    const jourPaiement = s.jour_paiement || dateDebut.getDate();
+
+    // Generate monthly periods from start to now (or end date)
+    const periodes = [];
+    let current = new Date(dateDebut);
+    const limit = s.date_fin ? new Date(s.date_fin) : new Date();
+    // Add one month buffer after today to show upcoming
+    limit.setMonth(limit.getMonth() + 1);
+
+    let idx = 0;
+    while (current <= limit && idx < 120) { // max 10 years
+        const periodStart = new Date(current);
+        const periodEnd = new Date(current);
+        periodEnd.setMonth(periodEnd.getMonth() + 1);
+        periodEnd.setDate(periodEnd.getDate() - 1);
+
+        const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+
+        periodes.push({
+            index: idx,
+            mois: monthKey,
+            label: new Date(current).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
+            debut: periodStart.toISOString().slice(0, 10),
+            fin: periodEnd.toISOString().slice(0, 10),
+            montant_du: montantMensuel,
+            paye: 0,
+            statut: 'IMPAYE', // will be updated below
+            paiements: [],
+        });
+
+        current.setMonth(current.getMonth() + 1);
+        idx++;
+    }
+
+    // Match transactions to periods
+    const txns = (data.transactions || []).filter(t => t.sejour_id === s.id && t.kind === 'IN');
+
+    for (const t of txns) {
+        const tDate = new Date(t.date);
+        // Find which period this payment belongs to
+        let matched = false;
+        for (const p of periodes) {
+            if (tDate >= new Date(p.debut) && tDate <= new Date(p.fin)) {
+                p.paye += t.amount;
+                p.paiements.push({ id: t.id, date: t.date, amount: t.amount, description: t.description });
+                matched = true;
+                break;
+            }
+        }
+        // If no period matched, add to the closest prior period
+        if (!matched && periodes.length > 0) {
+            for (let i = periodes.length - 1; i >= 0; i--) {
+                if (tDate >= new Date(periodes[i].debut)) {
+                    periodes[i].paye += t.amount;
+                    periodes[i].paiements.push({ id: t.id, date: t.date, amount: t.amount, description: t.description });
+                    break;
+                }
+            }
+        }
+    }
+
+    // Update statuts
+    const today = new Date().toISOString().slice(0, 10);
+    for (const p of periodes) {
+        if (p.paye >= p.montant_du) p.statut = 'PAYE';
+        else if (p.paye > 0) p.statut = 'PARTIEL';
+        else if (p.debut > today) p.statut = 'A_VENIR';
+        else p.statut = 'IMPAYE';
+    }
+
+    const totalDu = periodes.filter(p => p.debut <= today).reduce((s, p) => s + p.montant_du, 0);
+    const totalPaye = periodes.reduce((s, p) => s + p.paye, 0);
+    const moisImpayes = periodes.filter(p => p.statut === 'IMPAYE').length;
+
+    res.json({
+        sejour_id: s.id,
+        locataire: s.locataire,
+        montant_mensuel: montantMensuel,
+        jour_paiement: jourPaiement,
+        total_du: totalDu,
+        total_paye: totalPaye,
+        solde: totalDu - totalPaye,
+        mois_impayes: moisImpayes,
+        periodes,
+    });
+});
+
+// POST /sejours/:id/resilier — résilier un contrat long terme
+router.post('/:id/resilier', MGR, (req, res) => {
+    const data = load();
+    const idx = data.sejours.findIndex(s => s.id === Number(req.params.id));
+    if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
+    const s = data.sejours[idx];
+
+    const dateFin = req.body.date_fin || new Date().toISOString().slice(0, 10);
+    s.date_fin = dateFin;
+    s.statut = 'TERMINE';
+    s.long_terme = false;
+
+    save(data);
+    res.json(enrich(s, data));
 });
 
 // GET quittance de loyer — tous sauf TECHNICIEN

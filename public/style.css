@@ -764,6 +764,7 @@ td {
 .badge-in        { background: rgba(5,150,105,0.1);    color: #059669; border-color: rgba(5,150,105,0.22); }
 .badge-out       { background: rgba(220,38,38,0.1);    color: #DC2626; border-color: rgba(220,38,38,0.22); }
 .badge-occupied  { background: rgba(5,150,105,0.12);   color: #059669; border-color: rgba(5,150,105,0.22); }
+.badge-longterme { background: #ede9fe; color: #7c3aed; }
 
 /* ── Forms ─────────────────────────────────────────────────────────────────── */
 .form-group {
