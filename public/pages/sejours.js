@@ -1014,6 +1014,21 @@ window.printQuittance = async function(sejourId) {
         </tr>`).join('')
       : '<tr><td colspan="3" style="text-align:center;color:#888">Aucun paiement enregistré</td></tr>';
 
+    // Build period coverage section
+    const pc = d.periodes_couvertes || [];
+    const firstPeriod = pc[0];
+    const lastPeriod = pc[pc.length - 1];
+    const periodeSummary = pc.length > 0
+        ? (pc.length === 1 ? firstPeriod.label : `${firstPeriod.label.split(' — ')[0]} — ${lastPeriod.label.split(' — ')[1]}`)
+        : `${new Date(s.date_debut).toLocaleDateString('fr-FR')} au ${s.date_fin ? new Date(s.date_fin).toLocaleDateString('fr-FR') : '—'}`;
+
+    const periodesRows = pc.length > 0 ? pc.map(p => `<tr>
+          <td style="font-size:12px">${p.label}</td>
+          <td style="text-align:right;font-size:12px">${fmtMoney(p.montant_du)}</td>
+          <td style="text-align:right;font-size:12px;font-weight:600;color:${p.statut === 'COMPLET' ? '#059669' : '#f59e0b'}">${fmtMoney(p.montant_couvert)}${p.pourcentage < 100 ? ` (${p.pourcentage}%)` : ''}</td>
+          <td style="text-align:center;font-size:11px">${p.statut === 'COMPLET' ? '✅' : '⚠️ Partiel'}</td>
+        </tr>`).join('') : '';
+
     const html = `
       <style>
         body { font-family: system-ui, sans-serif; padding: 32px; color: #111; max-width: 680px; margin: auto; }
@@ -1027,6 +1042,8 @@ window.printQuittance = async function(sejourId) {
         th { text-align: left; padding: 8px; border-bottom: 2px solid #ddd; background: #f9f9f9; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
         td { padding: 8px; border-bottom: 1px solid #eee; }
         .total-row { font-weight: 700; font-size: 15px; }
+        .period-box { background: #f0f7ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 14px; margin-bottom: 20px; }
+        .period-title { font-size: 16px; font-weight: 700; color: #1e40af; margin-bottom: 4px; }
         .attestation { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 6px; padding: 16px; font-size: 13px; line-height: 1.6; margin-top: 24px; }
         .signature-block { margin-top: 32px; display: flex; justify-content: flex-end; }
         .signature-line { text-align: center; }
@@ -1038,9 +1055,22 @@ window.printQuittance = async function(sejourId) {
 
       <h1>QUITTANCE DE LOYER</h1>
       <div class="sous-titre">
-        Période : ${new Date(s.date_debut).toLocaleDateString('fr-FR')} au ${s.date_fin ? new Date(s.date_fin).toLocaleDateString('fr-FR') : '—'} &nbsp;|&nbsp;
         Émise le : ${new Date().toLocaleDateString('fr-FR')}
       </div>
+
+      <div class="period-box">
+        <div class="period-title">Période couverte : ${periodeSummary}</div>
+        <div style="font-size:13px;color:#555">Montant total réglé : <strong style="color:#059669">${fmtMoney(d.total_paye)}</strong></div>
+      </div>
+
+      ${pc.length > 1 ? `
+      <div class="section">
+        <div class="section-title">Détail par période</div>
+        <table>
+          <thead><tr><th>Période</th><th style="text-align:right">Loyer dû</th><th style="text-align:right">Payé</th><th style="text-align:center">Statut</th></tr></thead>
+          <tbody>${periodesRows}</tbody>
+        </table>
+      </div>` : ''}
 
       <div class="section">
         <div class="section-title">Bailleur / Propriété</div>
@@ -1067,7 +1097,7 @@ window.printQuittance = async function(sejourId) {
       </div>
 
       <div class="section">
-        <div class="section-title">Détail des paiements</div>
+        <div class="section-title">Historique des paiements</div>
         <table>
           <thead><tr><th>Date</th><th>Description</th><th style="text-align:right">Montant</th></tr></thead>
           <tbody>
@@ -1082,8 +1112,9 @@ window.printQuittance = async function(sejourId) {
 
       <div class="attestation">
         Je soussigné(e), <strong>${signataire}</strong>, gestionnaire, atteste avoir reçu la somme de
-        <strong>${fmtMoney(d.total_paye)}</strong> correspondant au loyer de la période
-        du ${new Date(s.date_debut).toLocaleDateString('fr-FR')} au ${s.date_fin ? new Date(s.date_fin).toLocaleDateString('fr-FR') : '—'}.
+        <strong>${fmtMoney(d.total_paye)}</strong> correspondant au loyer pour la période
+        <strong>${periodeSummary}</strong>.
+        ${pc.some(p => p.statut === 'PARTIEL') ? `<br><em>Note : certaines périodes sont partiellement réglées (voir détail ci-dessus).</em>` : ''}
       </div>
 
       <div class="signature-block">

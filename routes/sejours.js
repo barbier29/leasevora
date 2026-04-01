@@ -478,7 +478,59 @@ router.get('/:id/quittance', requireAuth, NO_TECH, (req, res) => {
     const loc = s.locataire_id ? data.locataires.find(l => l.id === s.locataire_id) : null;
     const txns = data.transactions.filter(t => t.sejour_id === s.id && t.kind === 'IN');
     const totalPaye = txns.reduce((sum, t) => sum + t.amount, 0);
-    res.json({ sejour: s, unit, property: prop, locataire: loc, paiements: txns, total_paye: totalPaye });
+
+    // Compute period coverage based on payments
+    const montantMensuel = s.montant || 0;
+    const jourPaiement = s.jour_paiement || new Date(s.date_debut).getDate();
+    let periodes_couvertes = [];
+
+    if (montantMensuel > 0 && (s.type_tarif === 'MENSUEL' || s.long_terme || s.statut === 'LONG_TERME')) {
+        // Generate periods and mark which ones are covered
+        const dateDebut = new Date(s.date_debut);
+        let current = new Date(dateDebut);
+        let remaining = totalPaye;
+        let idx = 0;
+
+        while (remaining > 0 && idx < 120) {
+            const jp = s.jour_paiement || dateDebut.getDate();
+            const maxDay = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate();
+            const day = Math.min(jp, maxDay);
+            const periodStart = new Date(current.getFullYear(), current.getMonth(), day);
+            const periodEnd = new Date(periodStart);
+            periodEnd.setMonth(periodEnd.getMonth() + 1);
+            periodEnd.setDate(periodEnd.getDate() - 1);
+
+            const couvert = Math.min(remaining, montantMensuel);
+            const pct = Math.round((couvert / montantMensuel) * 100);
+
+            periodes_couvertes.push({
+                debut: periodStart.toISOString().slice(0, 10),
+                fin: periodEnd.toISOString().slice(0, 10),
+                label: `${periodStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} — ${periodEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+                montant_du: montantMensuel,
+                montant_couvert: couvert,
+                pourcentage: pct,
+                statut: pct >= 100 ? 'COMPLET' : 'PARTIEL',
+            });
+
+            remaining -= couvert;
+            current.setMonth(current.getMonth() + 1);
+            idx++;
+        }
+    } else if (totalPaye > 0) {
+        // Non-mensuel: single period = séjour dates
+        periodes_couvertes.push({
+            debut: s.date_debut,
+            fin: s.date_fin || null,
+            label: `${new Date(s.date_debut).toLocaleDateString('fr-FR')} — ${s.date_fin ? new Date(s.date_fin).toLocaleDateString('fr-FR') : 'En cours'}`,
+            montant_du: computeTotal(s),
+            montant_couvert: totalPaye,
+            pourcentage: Math.round((totalPaye / Math.max(1, computeTotal(s))) * 100),
+            statut: totalPaye >= computeTotal(s) ? 'COMPLET' : 'PARTIEL',
+        });
+    }
+
+    res.json({ sejour: s, unit, property: prop, locataire: loc, paiements: txns, total_paye: totalPaye, periodes_couvertes });
 });
 
 // POST renouveler un séjour — tous sauf TECHNICIEN
