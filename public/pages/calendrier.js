@@ -740,7 +740,7 @@ async function renderCalendrierPage(container) {
 
         return `<tr>
                 <td style="padding:8px 12px;font-size:12px;font-weight:600;position:sticky;left:0;background:var(--bg-1);z-index:1;border-right:1px solid var(--border)">
-                  ${u.label} <span class="badge badge-${u.status.toLowerCase()}" style="font-size:9px;margin-left:4px">${u.status === 'OCCUPIED' ? 'Occ.' : 'Vac.'}</span>
+                  ${u.label} <span class="badge badge-${(u.status || 'VACANT').toLowerCase()}" style="font-size:9px;margin-left:4px">${u.status === 'OCCUPIED' ? 'Occ.' : 'Vac.'}</span>
                 </td>${cells}
               </tr>`;
       }).join('')}
@@ -836,7 +836,7 @@ async function renderCalendrierPage(container) {
               <span class="text-muted" style="font-size:12px;margin-left:8px">${prop.name}</span>
             </div>
             <div class="flex-center" style="gap:8px">
-              <span class="badge badge-${u.status.toLowerCase()}">${u.status === 'OCCUPIED' ? 'Occupé' : 'Vacant'}</span>
+              <span class="badge badge-${(u.status || 'VACANT').toLowerCase()}">${u.status === 'OCCUPIED' ? 'Occupé' : 'Vacant'}</span>
               <button class="btn btn-primary btn-sm add-sej-unit" data-unit="${u.id}">+ Séjour</button>
             </div>
           </div>

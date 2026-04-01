@@ -210,7 +210,7 @@ async function renderDashboardPage(container) {
       const n = p.total_in - p.total_out;
       return `<tr>
               <td><strong>${p.name}</strong></td>
-              <td><span class="badge badge-${p.type.toLowerCase()}">${p.type === 'BUILDING' ? 'Immeuble' : 'Indépendant'}</span></td>
+              <td><span class="badge badge-${(p.type || 'BUILDING').toLowerCase()}">${p.type === 'BUILDING' ? 'Immeuble' : 'Indépendant'}</span></td>
               <td>${p.unit_count}</td><td>${p.occupied_count}/${p.unit_count}</td>
               <td class="amount-in">${fmtMoney(p.total_in)}</td>
               <td class="amount-out">${fmtMoney(p.total_out)}</td>
@@ -231,7 +231,7 @@ async function renderDashboardPage(container) {
       return `<tr>
               <td><strong>${u.label}</strong></td>
               <td class="text-muted">${u.property_name}</td>
-              <td><span class="badge badge-${u.status.toLowerCase()}">${u.status === 'OCCUPIED' ? 'Occupé' : 'Vacant'}</span></td>
+              <td><span class="badge badge-${(u.status || 'VACANT').toLowerCase()}">${u.status === 'OCCUPIED' ? 'Occupé' : 'Vacant'}</span></td>
               <td>${fmtMoney(u.expected_rent)}</td>
               <td class="amount-in">${fmtMoney(u.total_in)}</td>
               <td class="${diff >= 0 ? 'amount-in' : 'amount-out'}">${diff >= 0 ? '+' : ''}${fmtMoney(diff)}</td>

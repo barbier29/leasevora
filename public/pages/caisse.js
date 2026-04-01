@@ -241,7 +241,7 @@ async function renderCaissePage(container) {
           <div class="card-header" style="flex-wrap:wrap;gap:12px">
             <div>
               <span class="card-title">🏢 ${p.name}</span>
-              <span class="badge badge-${p.type.toLowerCase()}" style="margin-left:8px">${p.type === 'BUILDING' ? 'Immeuble' : 'Indépendant'}</span>
+              <span class="badge badge-${(p.type || 'BUILDING').toLowerCase()}" style="margin-left:8px">${p.type === 'BUILDING' ? 'Immeuble' : 'Indépendant'}</span>
             </div>
             <div class="flex-center" style="gap:16px">
               <div style="text-align:right">

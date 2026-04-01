@@ -35,7 +35,7 @@ async function renderPropertiesPage(container) {
                   <strong>${p.name}</strong>
                   ${p.description ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px">${p.description}</div>` : ''}
                 </td>
-                <td><span class="badge badge-${p.type.toLowerCase()}">${p.type === 'BUILDING' ? 'Immeuble' : 'Indépendant'}</span></td>
+                <td><span class="badge badge-${(p.type || 'BUILDING').toLowerCase()}">${p.type === 'BUILDING' ? 'Immeuble' : 'Indépendant'}</span></td>
                 <td class="text-muted">${p.address || '—'}</td>
                 <td class="text-muted" style="font-size:12px">${specs || '—'}</td>
                 <td>
@@ -80,83 +80,169 @@ async function renderPropertiesPage(container) {
 
   async function showUnits(propId, propName) {
     const units = await api(`/units?property_id=${propId}`);
-    const sym = window.CURR?.symbol || '€';
-    const UNIT_TYPE_LABELS = {
-      APPARTEMENT: 'Appartement', STUDIO: 'Studio',
-      LOCAL_COMMERCIAL: 'Local commercial', MAISON: 'Maison',
-      BUREAU: 'Bureau', PARKING: 'Parking', AUTRE: 'Autre',
+    const sym = window.CURR.symbol;
+
+    const UNIT_TYPES = {
+      APPARTEMENT:      { label: 'Appartement',      icon: '🚪' },
+      STUDIO:           { label: 'Studio',            icon: '🛋️' },
+      LOCAL_COMMERCIAL: { label: 'Local commercial',  icon: '🏪' },
+      MAISON:           { label: 'Maison',            icon: '🏡' },
+      BUREAU:           { label: 'Bureau',            icon: '🖥️' },
+      PARKING:          { label: 'Parking',           icon: '🅿️' },
+      AUTRE:            { label: 'Autre',             icon: '📦' },
     };
+
+    function buildSpecs(u) {
+      const specItems = [
+        u.nb_chambres ? `${u.nb_chambres} ch.` : (u.nb_pieces ? `${u.nb_pieces}P` : null),
+        u.nb_sdb      ? `${u.nb_sdb} sdb`       : null,
+        u.surface     ? `${u.surface}m²`         : null,
+        u.etage != null ? `Ét.${u.etage}`        : null,
+      ].filter(Boolean);
+      const badges = [
+        u.meuble         ? '🛋️' : null,
+        u.balcon         ? '🌿' : null,
+        u.parking_inclus ? '🅿️' : null,
+      ].filter(Boolean).join('');
+      return specItems.join(' · ') + (badges ? ' ' + badges : '');
+    }
+
     openModal(`
-      <div class="modal-title">🚪 ${propName} — Biens</div>
-      <div style="margin-bottom:14px">
+      <div class="modal-title">🏢 ${propName} — Biens</div>
+
+      <!-- Liste des biens existants -->
+      <div style="margin-bottom:20px">
         ${units.length ? `
           <table style="width:100%;border-collapse:collapse">
             <thead><tr>
-              <th style="text-align:left;padding:8px 4px;font-size:11px;color:var(--text-3);border-bottom:1px solid var(--border)">Nom</th>
-              <th style="text-align:left;padding:8px 4px;font-size:11px;color:var(--text-3);border-bottom:1px solid var(--border)">Type</th>
-              <th style="text-align:left;padding:8px 4px;font-size:11px;color:var(--text-3);border-bottom:1px solid var(--border)">Statut</th>
-              <th style="text-align:right;padding:8px 4px;font-size:11px;color:var(--text-3);border-bottom:1px solid var(--border)">Loyer / mois</th>
+              <th style="text-align:left;padding:7px 6px;font-size:11px;font-weight:600;color:var(--text-3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px">Type</th>
+              <th style="text-align:left;padding:7px 6px;font-size:11px;font-weight:600;color:var(--text-3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px">Nom</th>
+              <th style="text-align:left;padding:7px 6px;font-size:11px;font-weight:600;color:var(--text-3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px">Statut</th>
+              <th style="text-align:right;padding:7px 6px;font-size:11px;font-weight:600;color:var(--text-3);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px">Loyer/mois</th>
               <th style="border-bottom:1px solid var(--border)"></th>
             </tr></thead>
             <tbody>
               ${units.map(u => {
-                const specs = [
-                  u.nb_pieces ? `${u.nb_pieces}P` : null,
-                  u.surface   ? `${u.surface}m²`  : null,
-                  u.etage != null ? `Ét.${u.etage}` : null,
-                ].filter(Boolean).join(' ');
-                return `
-                <tr>
-                  <td style="padding:9px 4px">
-                    <strong>${u.label}</strong>
-                    ${specs ? `<span style="font-size:11px;color:var(--text-3);margin-left:6px">${specs}</span>` : ''}
+                const t = UNIT_TYPES[u.type] || { label: u.type, icon: '📦' };
+                const specs = buildSpecs(u);
+                return `<tr style="border-bottom:1px solid var(--border-light,var(--border))">
+                  <td style="padding:9px 6px;white-space:nowrap">
+                    <span style="font-size:15px">${t.icon}</span>
+                    <span style="font-size:11px;color:var(--text-3);margin-left:4px">${t.label}</span>
                   </td>
-                  <td style="padding:9px 4px;font-size:12px;color:var(--text-2)">${UNIT_TYPE_LABELS[u.type] || u.type}</td>
-                  <td style="padding:9px 4px"><span class="badge badge-${u.status.toLowerCase()}">${u.status === 'OCCUPIED' ? 'Occupé' : 'Vacant'}</span></td>
-                  <td style="padding:9px 4px;text-align:right">${fmtMoney(u.expected_rent)}</td>
-                  <td style="padding:9px 4px;text-align:right">
+                  <td style="padding:9px 6px">
+                    <strong style="font-size:13px">${u.label}</strong>
+                    ${specs ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px">${specs}</div>` : ''}
+                  </td>
+                  <td style="padding:9px 6px"><span class="badge badge-${(u.status || 'VACANT').toLowerCase()}">${u.status === 'OCCUPIED' ? 'Occupé' : 'Vacant'}</span></td>
+                  <td style="padding:9px 6px;text-align:right;font-size:13px;font-weight:600">${fmtMoney(u.expected_rent)}</td>
+                  <td style="padding:9px 6px;text-align:right;white-space:nowrap">
+                    <button class="btn btn-ghost btn-sm edit-unit-inline" data-id="${u.id}" style="margin-right:4px">Modifier</button>
                     <button class="btn btn-danger btn-sm del-unit-inline" data-id="${u.id}" data-label="${u.label}">✕</button>
                   </td>
                 </tr>`;
               }).join('')}
             </tbody>
-          </table>` : '<p class="text-muted" style="font-size:13px;margin-bottom:12px">Aucun bien pour l\'instant.</p>'}
+          </table>` : `<div class="empty-state" style="padding:24px 0"><div class="empty-icon">🏗️</div><p>Aucun bien pour l'instant.</p></div>`}
       </div>
-      <div style="border-top:1px solid var(--border);padding-top:16px">
-        <div style="font-size:13px;font-weight:600;margin-bottom:12px">+ Ajouter un bien</div>
+
+      <!-- Formulaire d'ajout -->
+      <div style="border-top:1px solid var(--border);padding-top:18px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:14px">
+          + Ajouter un <span id="quf-type-label">bien</span>
+        </div>
+
+        <!-- Type picker -->
+        <div class="type-picker-grid" id="quf-type-picker">
+          ${Object.entries(UNIT_TYPES).map(([k, v]) =>
+            `<button type="button" class="type-card${k === 'APPARTEMENT' ? ' active' : ''}" data-type="${k}">
+              <span class="type-card-icon">${v.icon}</span>
+              <span>${v.label}</span>
+            </button>`
+          ).join('')}
+        </div>
+        <input type="hidden" id="qu-type" value="APPARTEMENT" />
+
         <form id="quick-unit-form">
+          <!-- Toujours visible -->
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Nom *</label>
               <input class="form-control" id="qu-label" placeholder="ex. Appt 3B, Local A" required />
             </div>
             <div class="form-group">
-              <label class="form-label">Type</label>
-              <select class="form-control" id="qu-type">
-                <option value="APPARTEMENT">Appartement</option>
-                <option value="STUDIO">Studio</option>
-                <option value="LOCAL_COMMERCIAL">Local commercial</option>
-                <option value="MAISON">Maison</option>
-                <option value="BUREAU">Bureau</option>
-                <option value="PARKING">Parking</option>
-                <option value="AUTRE">Autre</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Loyer mensuel (${sym})</label>
+              <label class="form-label">Loyer / mois (${sym})</label>
               <input class="form-control" id="qu-rent" type="number" min="0" step="0.01" value="0" />
             </div>
-            <div class="form-group">
-              <label class="form-label">Surface (m²)</label>
-              <input class="form-control" id="qu-surface" type="number" min="0" step="0.1" placeholder="Optionnel" />
+          </div>
+
+          <!-- Section résidentielle -->
+          <div id="quf-residential">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Nb de chambres</label>
+                <input class="form-control" id="qu-chambres" type="number" min="0" step="1" placeholder="ex. 2" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nb salles de bain</label>
+                <input class="form-control" id="qu-sdb" type="number" min="0" step="1" placeholder="ex. 1" />
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Nb pièces</label>
-              <input class="form-control" id="qu-pieces" type="number" min="0" step="1" placeholder="Optionnel" />
+            <div class="form-row" style="gap:20px;flex-wrap:wrap;margin-bottom:12px">
+              <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="qu-meuble" style="width:15px;height:15px;accent-color:var(--accent)" /> Meublé
+              </label>
+              <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="qu-balcon" style="width:15px;height:15px;accent-color:var(--accent)" /> Balcon / Terrasse
+              </label>
+              <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="qu-parking-inclus" style="width:15px;height:15px;accent-color:var(--accent)" /> Parking inclus
+              </label>
             </div>
           </div>
+
+          <!-- Surface + étage (tout sauf PARKING) -->
+          <div id="quf-surface" class="form-row">
+            <div class="form-group">
+              <label class="form-label">Surface (m²)</label>
+              <input class="form-control" id="qu-surface" type="number" min="0" step="0.1" placeholder="ex. 65" />
+            </div>
+            <div class="form-group" id="quf-etage">
+              <label class="form-label">Étage</label>
+              <input class="form-control" id="qu-etage" type="number" step="1" placeholder="ex. 2" />
+            </div>
+          </div>
+
+          <!-- Local commercial -->
+          <div id="quf-commercial" style="display:none">
+            <div class="form-group">
+              <label class="form-label">Activité prévue</label>
+              <input class="form-control" id="qu-activite" placeholder="ex. Commerce alimentaire, Coiffeur…" />
+            </div>
+          </div>
+
+          <!-- Bureau -->
+          <div id="quf-bureau" style="display:none" class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nb de pièces / bureaux</label>
+              <input class="form-control" id="qu-pieces" type="number" min="0" step="1" placeholder="ex. 4" />
+            </div>
+            <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:4px">
+              <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="qu-meuble-bureau" style="width:15px;height:15px;accent-color:var(--accent)" /> Meublé
+              </label>
+            </div>
+          </div>
+
+          <!-- Description (commercial, parking, autre) -->
+          <div id="quf-desc" style="display:none">
+            <div class="form-group">
+              <label class="form-label">Notes / conditions</label>
+              <textarea class="form-control" id="qu-desc" rows="2" placeholder="Informations complémentaires…"></textarea>
+            </div>
+          </div>
+
+          <!-- Statut -->
           <div class="form-group">
             <label class="form-label">Statut</label>
             <select class="form-control" id="qu-status">
@@ -164,14 +250,50 @@ async function renderPropertiesPage(container) {
               <option value="OCCUPIED">Occupé</option>
             </select>
           </div>
+
           <div class="form-actions">
             <button type="button" class="btn btn-ghost" onclick="closeModal()">Fermer</button>
-            <button type="submit" class="btn btn-primary">Ajouter</button>
+            <button type="submit" class="btn btn-primary">Ajouter le bien</button>
           </div>
         </form>
       </div>
     `);
 
+    // ── Type picker logic ──────────────────────────────────────────────────
+    const typeLabels = {
+      APPARTEMENT: 'un appartement', STUDIO: 'un studio', LOCAL_COMMERCIAL: 'un local commercial',
+      MAISON: 'une maison', BUREAU: 'un bureau', PARKING: 'un parking', AUTRE: 'un autre bien',
+    };
+
+    function updateQuickFormFields(type) {
+      document.getElementById('qu-type').value = type;
+      const lbl = typeLabels[type] || 'un bien';
+      document.getElementById('quf-type-label').textContent = lbl;
+
+      const isResidential = ['APPARTEMENT', 'STUDIO', 'MAISON'].includes(type);
+      const isParking     = type === 'PARKING';
+      const isCommercial  = type === 'LOCAL_COMMERCIAL';
+      const isBureau      = type === 'BUREAU';
+      const showDesc      = isCommercial || isParking || type === 'AUTRE';
+
+      document.getElementById('quf-residential').style.display  = isResidential ? '' : 'none';
+      document.getElementById('quf-surface').style.display      = isParking     ? 'none' : '';
+      document.getElementById('quf-etage').style.display        = isParking     ? 'none' : '';
+      document.getElementById('quf-commercial').style.display   = isCommercial  ? '' : 'none';
+      document.getElementById('quf-bureau').style.display       = isBureau      ? '' : 'none';
+      document.getElementById('quf-desc').style.display         = showDesc      ? '' : 'none';
+    }
+
+    document.querySelectorAll('.type-card').forEach(card => {
+      card.addEventListener('click', () => {
+        document.querySelectorAll('.type-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        updateQuickFormFields(card.dataset.type);
+      });
+    });
+    updateQuickFormFields('APPARTEMENT');
+
+    // ── Delete + Edit handlers ─────────────────────────────────────────────
     document.querySelectorAll('.del-unit-inline').forEach(btn => {
       btn.addEventListener('click', async () => {
         if (!confirm(`Supprimer "${btn.dataset.label}" ?`)) return;
@@ -182,16 +304,35 @@ async function renderPropertiesPage(container) {
       });
     });
 
+    document.querySelectorAll('.edit-unit-inline').forEach(btn => {
+      btn.addEventListener('click', () => {
+        window.__pendingEditUnit = Number(btn.dataset.id);
+        closeModal();
+        location.hash = 'units';
+      });
+    });
+
+    // ── Quick-add submit ───────────────────────────────────────────────────
     document.getElementById('quick-unit-form').addEventListener('submit', async e => {
       e.preventDefault();
+      const type = document.getElementById('qu-type').value;
+      const isResidential = ['APPARTEMENT', 'STUDIO', 'MAISON'].includes(type);
+      const isBureau      = type === 'BUREAU';
       const body = {
-        property_id: propId,
-        label:       document.getElementById('qu-label').value.trim(),
-        type:        document.getElementById('qu-type').value,
-        status:      document.getElementById('qu-status').value,
-        expected_rent: parseFloat(document.getElementById('qu-rent').value) || 0,
-        surface:     document.getElementById('qu-surface').value || null,
-        nb_pieces:   document.getElementById('qu-pieces').value || null,
+        property_id:    propId,
+        label:          document.getElementById('qu-label').value.trim(),
+        type,
+        status:         document.getElementById('qu-status').value,
+        expected_rent:  parseFloat(document.getElementById('qu-rent').value) || 0,
+        surface:        document.getElementById('qu-surface')?.value || null,
+        etage:          document.getElementById('qu-etage')?.value !== '' ? document.getElementById('qu-etage')?.value : null,
+        nb_chambres:    isResidential ? (document.getElementById('qu-chambres')?.value || null) : null,
+        nb_sdb:         isResidential ? (document.getElementById('qu-sdb')?.value || null) : null,
+        meuble:         isResidential ? (document.getElementById('qu-meuble')?.checked || false) : (isBureau ? (document.getElementById('qu-meuble-bureau')?.checked || false) : false),
+        balcon:         isResidential ? (document.getElementById('qu-balcon')?.checked || false) : false,
+        parking_inclus: isResidential ? (document.getElementById('qu-parking-inclus')?.checked || false) : false,
+        nb_pieces:      isBureau ? (document.getElementById('qu-pieces')?.value || null) : null,
+        description:    document.getElementById('qu-desc')?.value?.trim() || (type === 'LOCAL_COMMERCIAL' ? document.getElementById('qu-activite')?.value?.trim() || null : null),
       };
       try {
         await api('/units', { method: 'POST', body });
@@ -204,7 +345,7 @@ async function renderPropertiesPage(container) {
 
   function showForm(prop = null) {
     const isEdit = !!prop;
-    const sym = window.CURR?.symbol || '€';
+    const sym = window.CURR.symbol;
     openModal(`
       <div class="modal-title">${isEdit ? 'Modifier la propriété' : 'Nouvelle propriété'}</div>
       <form id="prop-form">

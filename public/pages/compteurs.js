@@ -58,7 +58,7 @@ async function renderCompteursPage(container) {
         <div class="card" style="margin-bottom:20px">
           <div class="card-header">
             <span class="card-title">🚪 ${unit.label} — <span class="text-muted">${prop?.name || '?'}</span></span>
-            <span class="badge badge-${unit.status.toLowerCase()}">${unit.status === 'OCCUPIED' ? 'Occupé' : 'Vacant'}</span>
+            <span class="badge badge-${(unit.status || 'VACANT').toLowerCase()}">${unit.status === 'OCCUPIED' ? 'Occupé' : 'Vacant'}</span>
           </div>
           <!-- Derniers relevés -->
           <div style="display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--border)">

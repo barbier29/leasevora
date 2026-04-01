@@ -46,7 +46,7 @@ async function renderUnitsPage(container) {
                 <td><span style="font-size:13px">${t.icon} ${t.label}</span></td>
                 <td class="text-muted">${u.property_name}</td>
                 <td class="text-muted" style="font-size:12px">${specs || '—'}</td>
-                <td><span class="badge badge-${u.status.toLowerCase()}">${u.status === 'OCCUPIED' ? 'Occupé' : 'Vacant'}</span></td>
+                <td><span class="badge badge-${(u.status || 'VACANT').toLowerCase()}">${u.status === 'OCCUPIED' ? 'Occupé' : 'Vacant'}</span></td>
                 <td>${fmtMoney(u.expected_rent)}</td>
                 <td style="text-align:right">
                   <button class="btn btn-ghost btn-sm edit-unit-btn" data-id="${u.id}">Modifier</button>
