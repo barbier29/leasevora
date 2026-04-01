@@ -245,6 +245,7 @@ async function renderSejoursPage(container) {
       <div class="form-actions">
         <button class="btn btn-danger btn-sm" id="del-sej-det">🗑</button>
         ${s.statut === 'TERMINE' ? `<button class="btn btn-ghost btn-sm" id="renouveler-sej-det">🔄 Renouveler</button>` : ''}
+        <button class="btn btn-ghost btn-sm" id="print-facture-btn">📄 Facture</button>
         <button class="btn btn-ghost btn-sm" id="print-quittance-btn">🖨️ Quittance</button>
         <button class="btn btn-ghost" onclick="closeModal()">Fermer</button>
         <button class="btn btn-ghost" id="edit-sej-det">✏️ Modifier</button>
@@ -278,6 +279,10 @@ async function renderSejoursPage(container) {
 
     document.getElementById('print-quittance-btn')?.addEventListener('click', () => {
       window.printQuittance(s.id);
+    });
+
+    document.getElementById('print-facture-btn')?.addEventListener('click', () => {
+      window.printFacture(s.id);
     });
 
     document.getElementById('renouveler-sej-det')?.addEventListener('click', async () => {
@@ -507,6 +512,15 @@ async function renderSejoursPage(container) {
             </div>
           </div>
         </div>
+        <div style="margin-top:16px;padding:16px;background:var(--bg-2);border-radius:8px;border:1px solid var(--border)">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+            <input type="checkbox" id="f-emit-facture" style="width:18px;height:18px" />
+            <div>
+              <div style="font-weight:600;font-size:13px">Émettre une facture</div>
+              <div style="font-size:11px;color:var(--text-3)">Génère automatiquement une facture PDF à l'enregistrement</div>
+            </div>
+          </label>
+        </div>
         <div class="form-actions">
           <button type="button" class="btn btn-ghost" onclick="closeModal()">Annuler</button>
           <button type="submit" class="btn btn-primary">${isEdit ? 'Enregistrer' : 'Créer le séjour'}</button>
@@ -595,9 +609,15 @@ async function renderSejoursPage(container) {
         caution_date: document.getElementById('f-caution-date').value || null,
       };
       try {
-        if (isEdit) { await api(`/sejours/${sej.id}`, { method: 'PUT', body }); toast('Séjour modifié'); }
-        else { await api('/sejours', { method: 'POST', body }); toast('Séjour créé'); }
-        closeModal(); load();
+        let result;
+        if (isEdit) { result = await api(`/sejours/${sej.id}`, { method: 'PUT', body }); toast('Séjour modifié'); }
+        else { result = await api('/sejours', { method: 'POST', body }); toast('Séjour créé'); }
+        const emitFacture = document.getElementById('f-emit-facture')?.checked;
+        closeModal();
+        if (emitFacture && result?.id) {
+            await window.printFacture(result.id);
+        }
+        load();
       } catch (e) { toast(e.message, 'error'); }
     });
   }
@@ -885,5 +905,203 @@ window.printQuittance = async function(sejourId) {
     printSection('Quittance de loyer — ' + locNom, html);
   } catch (e) {
     toast('Erreur quittance : ' + e.message, 'error');
+  }
+};
+
+window.printFacture = async function(sejourId) {
+  try {
+    const d = await api(`/sejours/${sejourId}/facture`);
+    const user = window.CURRENT_USER;
+    const emetteur = user ? ((user.prenom || '') + ' ' + (user.nom || user.login || '')).trim() : 'Gestionnaire';
+    const s = d.sejour;
+    const loc = d.locataire;
+    const unit = d.unit;
+    const prop = d.property;
+    const pay = d.payment;
+
+    const locNom = loc ? ((loc.prenom || '') + ' ' + loc.nom).trim() : (s.locataire || '—');
+    const locTel = loc?.telephone || '';
+    const locEmail = loc?.email || '';
+
+    const TARIF_LABELS = { JOURNALIER: 'Journalier', MENSUEL: 'Mensuel', FORFAIT: 'Forfait période', HEBDOMADAIRE: 'Hebdomadaire' };
+
+    // Calcul durée et lignes de facturation
+    const lignes = [];
+    const totalDu = pay.montant_total_du || s.montant;
+
+    if (s.type_tarif === 'FORFAIT') {
+      lignes.push({ desc: `Location forfaitaire — ${unit.label || '?'}`, qte: '1', pu: s.montant, total: s.montant });
+    } else if (s.type_tarif === 'MENSUEL') {
+      const mois = s.date_fin ? Math.max(1, Math.round((new Date(s.date_fin) - new Date(s.date_debut)) / (1000*60*60*24*30))) : 1;
+      lignes.push({ desc: `Loyer mensuel — ${unit.label || '?'}`, qte: mois + ' mois', pu: s.montant, total: s.montant * mois });
+    } else if (s.type_tarif === 'HEBDOMADAIRE') {
+      const sem = s.date_fin ? Math.max(1, Math.round((new Date(s.date_fin) - new Date(s.date_debut)) / (1000*60*60*24*7))) : 1;
+      lignes.push({ desc: `Location hebdomadaire — ${unit.label || '?'}`, qte: sem + ' sem.', pu: s.montant, total: s.montant * sem });
+    } else {
+      const jours = s.date_fin ? Math.max(1, Math.round((new Date(s.date_fin) - new Date(s.date_debut)) / 86400000)) : 1;
+      lignes.push({ desc: `Location journalière — ${unit.label || '?'}`, qte: jours + ' jour' + (jours > 1 ? 's' : ''), pu: s.montant, total: s.montant * jours });
+    }
+
+    // Ligne caution si applicable
+    if (s.caution_montant > 0) {
+      const cautionLabels = { AUCUNE: 'Non perçue', EN_ATTENTE: 'En attente', PAYEE: 'Payée', RESTITUEE: 'Restituée', UTILISEE_PARTIELLE: 'Retenue partielle', UTILISEE_TOTALE: 'Retenue totale' };
+      lignes.push({ desc: `Caution de garantie (${cautionLabels[s.caution_statut] || s.caution_statut})`, qte: '1', pu: s.caution_montant, total: s.caution_montant });
+    }
+
+    const sousTotal = lignes.reduce((sum, l) => sum + l.total, 0);
+
+    const lignesHtml = lignes.map(l => `
+      <tr>
+        <td style="padding:10px 8px">${l.desc}</td>
+        <td style="padding:10px 8px;text-align:center">${l.qte}</td>
+        <td style="padding:10px 8px;text-align:right">${fmtMoney(l.pu)}</td>
+        <td style="padding:10px 8px;text-align:right;font-weight:600">${fmtMoney(l.total)}</td>
+      </tr>`).join('');
+
+    const html = `
+      <style>
+        body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; color: #111; max-width: 720px; margin: auto; font-size: 13px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 3px solid #111; }
+        .header-left h1 { font-size: 28px; font-weight: 800; letter-spacing: 2px; margin: 0 0 4px 0; }
+        .header-left .num { font-size: 14px; color: #555; }
+        .header-right { text-align: right; font-size: 12px; color: #555; }
+        .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 28px; }
+        .party { padding: 16px; border-radius: 8px; }
+        .party-from { background: #f8f9fa; }
+        .party-to { background: #f0f7ff; border: 1px solid #d0e3ff; }
+        .party-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #888; margin-bottom: 8px; }
+        .party-name { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+        .party-detail { font-size: 12px; color: #555; line-height: 1.6; }
+        .meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+        .meta-item { background: #f8f9fa; border-radius: 6px; padding: 10px 12px; text-align: center; }
+        .meta-label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: #888; margin-bottom: 4px; }
+        .meta-value { font-size: 13px; font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        thead th { background: #111; color: #fff; padding: 10px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; }
+        thead th:first-child { border-radius: 6px 0 0 0; }
+        thead th:last-child { border-radius: 0 6px 0 0; }
+        tbody tr { border-bottom: 1px solid #eee; }
+        tbody tr:last-child { border-bottom: 2px solid #ddd; }
+        .total-section { display: flex; justify-content: flex-end; margin-bottom: 28px; }
+        .total-box { width: 280px; }
+        .total-line { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+        .total-line.grand { font-size: 18px; font-weight: 800; padding: 12px 0; border-top: 2px solid #111; margin-top: 4px; }
+        .paiement-info { background: ${pay.solde_restant > 0 ? '#fff5f5' : '#f0fdf4'}; border: 1px solid ${pay.solde_restant > 0 ? '#fecaca' : '#bbf7d0'}; border-radius: 8px; padding: 14px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+        .conditions { background: #f8f9fa; border-radius: 8px; padding: 16px; font-size: 11px; color: #555; line-height: 1.7; margin-bottom: 28px; }
+        .conditions-title { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #888; margin-bottom: 8px; }
+        .footer { margin-top: 32px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .sig-block { text-align: center; }
+        .sig-name { font-weight: 600; margin-bottom: 4px; }
+        .sig-date { font-size: 11px; color: #666; margin-bottom: 40px; }
+        .sig-bar { border-top: 1px solid #333; width: 200px; padding-top: 6px; font-size: 11px; color: #666; text-align: center; }
+        @media print { body { padding: 20px; } }
+      </style>
+
+      <div class="header">
+        <div class="header-left">
+          <h1>FACTURE</h1>
+          <div class="num">${d.num_facture}</div>
+        </div>
+        <div class="header-right">
+          <div>Date d'émission : <strong>${new Date(d.date_emission).toLocaleDateString('fr-FR')}</strong></div>
+          <div>Période : ${new Date(s.date_debut).toLocaleDateString('fr-FR')} — ${s.date_fin ? new Date(s.date_fin).toLocaleDateString('fr-FR') : 'Indéterminée'}</div>
+        </div>
+      </div>
+
+      <div class="parties">
+        <div class="party party-from">
+          <div class="party-label">Émetteur</div>
+          <div class="party-name">${prop.name || 'Propriété'}</div>
+          <div class="party-detail">${prop.address || ''}</div>
+          <div class="party-detail" style="margin-top:6px">${emetteur}</div>
+        </div>
+        <div class="party party-to">
+          <div class="party-label">Destinataire</div>
+          <div class="party-name">${locNom}</div>
+          <div class="party-detail">${locTel}${locTel && locEmail ? ' · ' : ''}${locEmail}</div>
+          ${loc?.piece_identite ? `<div class="party-detail">${loc.type_piece || 'ID'} : ${loc.piece_identite}</div>` : ''}
+        </div>
+      </div>
+
+      <div class="meta">
+        <div class="meta-item">
+          <div class="meta-label">Bien</div>
+          <div class="meta-value">${unit.label || '—'}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Type tarif</div>
+          <div class="meta-value">${TARIF_LABELS[s.type_tarif] || s.type_tarif}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Arrivée</div>
+          <div class="meta-value">${new Date(s.date_debut).toLocaleDateString('fr-FR')}</div>
+        </div>
+        <div class="meta-item">
+          <div class="meta-label">Départ</div>
+          <div class="meta-value">${s.date_fin ? new Date(s.date_fin).toLocaleDateString('fr-FR') : '—'}</div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="text-align:left">Description</th>
+            <th style="text-align:center">Quantité</th>
+            <th style="text-align:right">Prix unitaire</th>
+            <th style="text-align:right">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${lignesHtml}
+        </tbody>
+      </table>
+
+      <div class="total-section">
+        <div class="total-box">
+          <div class="total-line"><span>Sous-total location</span><span>${fmtMoney(lignes[0].total)}</span></div>
+          ${s.caution_montant > 0 ? `<div class="total-line"><span>Caution de garantie</span><span>${fmtMoney(s.caution_montant)}</span></div>` : ''}
+          <div class="total-line grand"><span>TOTAL</span><span>${fmtMoney(sousTotal)}</span></div>
+        </div>
+      </div>
+
+      <div class="paiement-info">
+        <div>
+          <div style="font-weight:600;font-size:14px">${pay.solde_restant > 0 ? '⏳ Solde restant à régler' : '✅ Facture soldée'}</div>
+          <div style="font-size:12px;color:#555;margin-top:2px">Payé : ${fmtMoney(pay.montant_paye)} / ${fmtMoney(pay.montant_total_du)}</div>
+        </div>
+        ${pay.solde_restant > 0 ? `<div style="font-size:20px;font-weight:800;color:#dc2626">${fmtMoney(pay.solde_restant)}</div>` : ''}
+      </div>
+
+      ${s.caution_montant > 0 ? `
+      <div class="conditions">
+        <div class="conditions-title">Caution de garantie</div>
+        Montant : <strong>${fmtMoney(s.caution_montant)}</strong><br>
+        La caution sera restituée au locataire en fin de séjour, sous réserve de l'état des lieux de sortie.
+        En cas de dégradations constatées, tout ou partie de la caution pourra être retenue pour couvrir les frais de remise en état.
+        ${s.caution_date ? `<br>Date de perception : ${new Date(s.caution_date).toLocaleDateString('fr-FR')}` : ''}
+      </div>` : ''}
+
+      <div class="conditions">
+        <div class="conditions-title">Conditions</div>
+        Facture émise le ${new Date().toLocaleDateString('fr-FR')} pour la location du bien <strong>${unit.label || '—'}</strong>
+        situé à <strong>${prop.address || prop.name || '—'}</strong>.
+        ${s.notes ? `<br>Notes : ${s.notes}` : ''}
+      </div>
+
+      <div class="footer">
+        <div style="font-size:11px;color:#888">
+          ${d.num_facture}<br>
+          Généré par Leasevora
+        </div>
+        <div class="sig-block">
+          <div class="sig-name">${emetteur}</div>
+          <div class="sig-date">${new Date().toLocaleDateString('fr-FR')}</div>
+          <div class="sig-bar">Signature</div>
+        </div>
+      </div>
+    `;
+    printSection('Facture ' + d.num_facture + ' — ' + locNom, html);
+  } catch (e) {
+    toast('Erreur facture : ' + e.message, 'error');
   }
 };

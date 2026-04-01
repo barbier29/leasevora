@@ -313,6 +313,31 @@ router.delete('/:id', MGR, (req, res) => {
     res.json({ success: true });
 });
 
+// GET /sejours/:id/facture — données pour la facture
+router.get('/:id/facture', requireAuth, NO_TECH, (req, res) => {
+    const data = load();
+    const s = data.sejours.find(s => s.id === Number(req.params.id));
+    if (!s) return res.status(404).json({ error: 'Non trouvé' });
+    const unit = data.units.find(u => u.id === s.unit_id) || {};
+    const prop = data.properties.find(p => p.id === unit.property_id) || {};
+    const loc = s.locataire_id ? data.locataires.find(l => l.id === s.locataire_id) : null;
+    const payment = computePaymentStatus(s, data);
+
+    // Numéro de facture : FAC-{year}-{sejour_id padded}
+    const year = new Date().getFullYear();
+    const numFacture = `FAC-${year}-${String(s.id).padStart(4, '0')}`;
+
+    res.json({
+        num_facture: numFacture,
+        date_emission: new Date().toISOString().slice(0, 10),
+        sejour: s,
+        unit,
+        property: prop,
+        locataire: loc,
+        payment,
+    });
+});
+
 // GET quittance de loyer — tous sauf TECHNICIEN
 router.get('/:id/quittance', requireAuth, NO_TECH, (req, res) => {
     const data = load();
