@@ -10,11 +10,12 @@ window.setCalViewMode = setCalViewMode;
 
 // ── Couleurs par statut de séjour ─────────────────────────────────────────────
 const SEJOUR_STATUS_COLORS = {
-    EN_COURS:  { bg: 'rgba(16,185,129,0.35)',  border: '#10b981', text: '#ecfdf5', label: 'En cours' },
-    A_VENIR:   { bg: 'rgba(99,102,241,0.35)',  border: '#818cf8', text: '#e0e7ff', label: 'À venir' },
-    CONFIRME:  { bg: 'rgba(99,102,241,0.30)',  border: '#818cf8', text: '#e0e7ff', label: 'Confirmé' },
-    TERMINE:   { bg: 'rgba(148,163,184,0.18)', border: '#64748b', text: '#94a3b8', label: 'Terminé' },
-    ANNULE:    { bg: 'rgba(244,63,94,0.25)',   border: '#f43f5e', text: '#fda4af', label: 'Annulé' },
+    EN_COURS:   { bg: 'rgba(16,185,129,0.35)',  border: '#10b981', text: '#ecfdf5', label: 'En cours' },
+    A_VENIR:    { bg: 'rgba(99,102,241,0.35)',  border: '#818cf8', text: '#e0e7ff', label: 'À venir' },
+    CONFIRME:   { bg: 'rgba(99,102,241,0.30)',  border: '#818cf8', text: '#e0e7ff', label: 'Confirmé' },
+    LONG_TERME: { bg: 'rgba(124,58,237,0.35)',  border: '#7c3aed', text: '#ede9fe', label: 'Long terme' },
+    TERMINE:    { bg: 'rgba(148,163,184,0.18)', border: '#64748b', text: '#94a3b8', label: 'Terminé' },
+    ANNULE:     { bg: 'rgba(244,63,94,0.25)',   border: '#f43f5e', text: '#fda4af', label: 'Annulé' },
 };
 
 function getSejourEffectiveStatus(sejour) {
@@ -23,6 +24,7 @@ function getSejourEffectiveStatus(sejour) {
     const fin = sejour.date_fin ? new Date(sejour.date_fin) : null;
 
     if (sejour.statut === 'ANNULE') return 'ANNULE';
+    if (sejour.statut === 'LONG_TERME') return 'LONG_TERME';
     if (debut && debut > now) return 'A_VENIR';
     if (debut && fin && debut <= now && fin >= now) return 'EN_COURS';
     if (fin && fin < now) return 'TERMINE';
@@ -103,7 +105,7 @@ async function renderCalendrierPage(container) {
 
   // ── Open séjour detail popup ─────────────────────────────────────────────
   async function openSejourDetail(sejour) {
-    const statusLabel = { A_VENIR: 'À venir', EN_COURS: 'En cours', TERMINE: 'Terminé', ANNULE: 'Annulé' };
+    const statusLabel = { A_VENIR: 'À venir', EN_COURS: 'En cours', LONG_TERME: 'Long terme', TERMINE: 'Terminé', ANNULE: 'Annulé' };
     const loc = _locs.find(l => l.id === sejour.locataire_id);
     openModal(`
       <div class="modal-title">🛏️ ${sejour.locataire}</div>
@@ -117,7 +119,7 @@ async function renderCalendrierPage(container) {
         <div><div style="font-size:11px;color:var(--text-3)">Tarif</div>
           <div style="font-size:13px"><span class="amount-in">${fmtMoney(sejour.montant)}</span>/${sejour.type_tarif === 'JOURNALIER' ? 'jour' : 'mois'}</div></div>
         <div><div style="font-size:11px;color:var(--text-3)">Statut</div>
-          <div style="font-size:13px"><span class="badge badge-${sejour.statut === 'EN_COURS' ? 'occupied' : 'building'}">${statusLabel[sejour.statut] || sejour.statut}</span></div></div>
+          <div style="font-size:13px"><span class="badge badge-${sejour.statut === 'EN_COURS' ? 'occupied' : sejour.statut === 'LONG_TERME' ? 'longterme' : 'building'}">${statusLabel[sejour.statut] || sejour.statut}</span></div></div>
         ${sejour.notes ? `<div style="grid-column:1/-1"><div style="font-size:11px;color:var(--text-3)">Notes</div><div style="font-size:13px">${sejour.notes}</div></div>` : ''}
         ${loc ? `<div style="grid-column:1/-1;padding:10px;background:var(--bg-2);border-radius:6px;display:flex;gap:16px;align-items:center">
           <span>👤 <strong>${loc.prenom ? loc.prenom + ' ' : ''}${loc.nom}</strong></span>
@@ -407,6 +409,7 @@ async function renderCalendrierPage(container) {
       <div class="flex-center" style="gap:16px;margin-bottom:14px;font-size:12px;flex-wrap:wrap">
         <span><span style="display:inline-block;width:12px;height:12px;background:rgba(34,211,169,.3);border-radius:3px;margin-right:4px;vertical-align:middle;border:1px solid var(--green)"></span>Disponible (cliquez pour réserver)</span>
         <span><span style="display:inline-block;width:12px;height:12px;background:rgba(255,91,122,.6);border-radius:3px;margin-right:4px;vertical-align:middle"></span>Occupé (cliquez pour voir)</span>
+        <span><span style="display:inline-block;width:12px;height:12px;background:rgba(124,58,237,.35);border:1px solid #7c3aed;border-radius:3px;margin-right:4px;vertical-align:middle"></span>Long terme</span>
         <span><span style="display:inline-block;width:12px;height:12px;background:#f5a623;border-radius:3px;margin-right:4px;vertical-align:middle"></span>Arrivée / Départ</span>
       </div>` : ''}
 
@@ -538,7 +541,7 @@ async function renderCalendrierPage(container) {
           if (finDate) finDate.setHours(0, 0, 0, 0);
 
           const barStart = dayOffset(debutDate);
-          const barEnd = finDate ? dayOffset(finDate) : barStart + 30;
+          const barEnd = finDate ? dayOffset(finDate) : (s.statut === 'LONG_TERME' || s.long_terme ? totalDays : barStart + 30);
 
           if (barEnd < 0 || barStart > totalDays) return '';
 
