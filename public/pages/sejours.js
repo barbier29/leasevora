@@ -325,6 +325,9 @@ async function renderSejoursPage(container) {
             compte_id: parseInt(document.getElementById('pay-compte')?.value) || 1,
           }});
           toast('Paiement enregistré');
+          if (confirm('Émettre la quittance de loyer ?')) {
+              await window.printQuittance(s.id);
+          }
           closeModal();
           onRefresh();
         } catch (e) { toast(e.message, 'error'); }
@@ -423,6 +426,17 @@ async function renderSejoursPage(container) {
                             <div style="font-size:16px;font-weight:700;color:${ech.mois_impayes > 0 ? 'var(--red)' : 'var(--green)'}">${ech.mois_impayes}</div>
                         </div>
                     </div>
+                    <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px;padding:10px;background:var(--bg-3);border-radius:6px">
+                        <div style="flex:1;min-width:80px">
+                            <label style="font-size:10px;color:var(--text-3);display:block;margin-bottom:3px">Nombre de mois</label>
+                            <input class="form-control" id="ech-nb-mois" type="number" min="1" max="12" value="${ech.mois_impayes || 1}" style="height:34px" />
+                        </div>
+                        <div style="flex:1;min-width:80px">
+                            <label style="font-size:10px;color:var(--text-3);display:block;margin-bottom:3px">Montant total</label>
+                            <input class="form-control" id="ech-montant-total" type="number" min="0" step="0.01" value="${(ech.mois_impayes || 1) * ech.montant_mensuel}" style="height:34px" readonly />
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="ech-pay-bulk" style="height:34px;white-space:nowrap">💰 Payer ${ech.mois_impayes || 1} mois</button>
+                    </div>
                     <div style="max-height:250px;overflow-y:auto">
                         <table style="font-size:12px;width:100%">
                             <thead><tr>
@@ -464,11 +478,59 @@ async function renderSejoursPage(container) {
                                 compte_id: 1,
                             }});
                             toast('Paiement enregistré');
+                            if (confirm('Émettre la quittance de loyer ?')) {
+                                await window.printQuittance(s.id);
+                            }
                             closeModal();
                             onRefresh();
                         } catch (e) { toast(e.message, 'error'); }
                     });
                 });
+
+                // Bulk payment - update total when nb_mois changes
+                const nbMoisInput = document.getElementById('ech-nb-mois');
+                const montantTotalInput = document.getElementById('ech-montant-total');
+                const payBulkBtn = document.getElementById('ech-pay-bulk');
+
+                if (nbMoisInput && montantTotalInput && payBulkBtn) {
+                    nbMoisInput.addEventListener('input', () => {
+                        const nb = parseInt(nbMoisInput.value) || 1;
+                        montantTotalInput.value = nb * ech.montant_mensuel;
+                        payBulkBtn.textContent = `💰 Payer ${nb} mois`;
+                    });
+
+                    payBulkBtn.addEventListener('click', async () => {
+                        const nb = parseInt(nbMoisInput.value) || 1;
+                        const amount = parseFloat(montantTotalInput.value);
+                        if (!amount || amount <= 0) return toast('Montant invalide', 'error');
+                        const today = new Date().toISOString().slice(0, 10);
+
+                        // Find the periods that will be covered
+                        const unpaidPeriods = ech.periodes.filter(p => p.statut === 'IMPAYE' || p.statut === 'PARTIEL').slice(0, nb);
+                        const firstPeriod = unpaidPeriods[0];
+                        const lastPeriod = unpaidPeriods[unpaidPeriods.length - 1];
+                        const desc = firstPeriod && lastPeriod
+                            ? `Loyer ${firstPeriod.label} → ${lastPeriod.label} — ${s.locataire}`
+                            : `Loyer ${nb} mois — ${s.locataire}`;
+
+                        try {
+                            await api('/transactions', { method: 'POST', body: {
+                                date: today,
+                                description: desc,
+                                kind: 'IN',
+                                amount,
+                                sejour_id: s.id,
+                                compte_id: 1,
+                            }});
+                            toast(`Paiement de ${nb} mois enregistré`);
+                            if (confirm('Émettre la quittance de loyer ?')) {
+                                await window.printQuittance(s.id);
+                            }
+                            closeModal();
+                            onRefresh();
+                        } catch (e) { toast(e.message, 'error'); }
+                    });
+                }
             }
         } catch (e) { console.error('Échéancier error:', e); }
 

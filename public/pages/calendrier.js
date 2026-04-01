@@ -203,6 +203,9 @@ async function renderCalendrierPage(container) {
             compte_id: parseInt(document.getElementById('cal-pay-compte')?.value) || 1,
           }});
           toast('Paiement enregistré');
+          if (confirm('Émettre la quittance de loyer ?')) {
+              await window.printQuittance(sejour.id);
+          }
           closeModal();
           await reload();
         } catch (e) { toast(e.message, 'error'); }

@@ -134,9 +134,6 @@ async function renderTransactionsPage(container) {
     const today = new Date().toISOString().slice(0, 10);
     const initUnits = txn ? await api(`/units?property_id=${txn.property_id}`) : [];
 
-    // Smart default source: OUT → CAISSE, IN → BANQUE
-    const defaultSource = txn?.source || (txn?.kind === 'OUT' ? 'CAISSE' : 'BANQUE');
-
     openModal(`
       <div class="modal-title">${isEdit ? 'Modifier la transaction' : 'Nouvelle transaction'}</div>
       <form id="txn-form">
@@ -155,10 +152,8 @@ async function renderTransactionsPage(container) {
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Source *</label>
-            <select class="form-control" id="f-source">
-              <option value="CAISSE" ${defaultSource === 'CAISSE' ? 'selected' : ''}>🏦 Caisse — trésorerie opérationnelle</option>
-              <option value="BANQUE" ${defaultSource === 'BANQUE' ? 'selected' : ''}>🏛️ Banque — compte bancaire dédié</option>
+            <label class="form-label">Compte *</label>
+            <select class="form-control" id="f-compte">
             </select>
           </div>
           <div class="form-group">
@@ -228,9 +223,27 @@ async function renderTransactionsPage(container) {
       document.getElementById('f-cat').value = txn.category_id;
     }
 
-    // Mise à jour automatique source et catégories selon type
+    // Charger les comptes pour le sélecteur
+    try {
+      const comptes = await api('/comptes');
+      const sel = document.getElementById('f-compte');
+      if (sel) {
+        sel.innerHTML = '';
+        comptes.filter(c => c.actif !== false).forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = `${c.type === 'CAISSE' ? '🏦' : '🏛️'} ${c.nom}`;
+          sel.appendChild(opt);
+        });
+        // Restaurer la sélection si on est en mode édition
+        if (txn?.compte_id) {
+          sel.value = txn.compte_id;
+        }
+      }
+    } catch {}
+
+    // Mise à jour automatique catégories selon type
     document.getElementById('f-kind').addEventListener('change', e => {
-      document.getElementById('f-source').value = e.target.value === 'OUT' ? 'CAISSE' : 'BANQUE';
       // Filtrer les catégories et réinitialiser la sélection
       updateFormCategories(e.target.value, false);
     });
@@ -285,7 +298,7 @@ async function renderTransactionsPage(container) {
         date: document.getElementById('f-date').value,
         description: document.getElementById('f-desc').value.trim(),
         kind: document.getElementById('f-kind').value,
-        source: document.getElementById('f-source').value,
+        compte_id: parseInt(document.getElementById('f-compte').value) || 1,
         amount: parseFloat(document.getElementById('f-amount').value),
         category_id: parseInt(document.getElementById('f-cat').value),
         property_id: parseInt(document.getElementById('f-prop').value),

@@ -362,17 +362,21 @@ router.get('/:id/echeancier', requireAuth, NO_TECH, (req, res) => {
 
     let idx = 0;
     while (current <= limit && idx < 120) { // max 10 years
-        const periodStart = new Date(current);
-        const periodEnd = new Date(current);
+        const periodStart = new Date(current.getFullYear(), current.getMonth(), jourPaiement);
+        // Clamp to actual days in month
+        const maxDay = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate();
+        if (periodStart.getDate() > maxDay) periodStart.setDate(maxDay);
+
+        const periodEnd = new Date(periodStart);
         periodEnd.setMonth(periodEnd.getMonth() + 1);
         periodEnd.setDate(periodEnd.getDate() - 1);
 
-        const monthKey = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`;
+        const monthKey = `${periodStart.getFullYear()}-${String(periodStart.getMonth() + 1).padStart(2, '0')}`;
 
         periodes.push({
             index: idx,
             mois: monthKey,
-            label: new Date(current).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
+            label: `${periodStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} — ${periodEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`,
             debut: periodStart.toISOString().slice(0, 10),
             fin: periodEnd.toISOString().slice(0, 10),
             montant_du: montantMensuel,
@@ -409,6 +413,16 @@ router.get('/:id/echeancier', requireAuth, NO_TECH, (req, res) => {
                     break;
                 }
             }
+        }
+    }
+
+    // Cascade surplus payments to next periods
+    for (let i = 0; i < periodes.length; i++) {
+        const p = periodes[i];
+        if (p.paye > p.montant_du && i + 1 < periodes.length) {
+            const surplus = p.paye - p.montant_du;
+            periodes[i + 1].paye += surplus;
+            p.paye = p.montant_du;
         }
     }
 

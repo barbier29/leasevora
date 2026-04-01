@@ -1,4 +1,4 @@
-const CACHE_NAME = 'leasevora-v10';
+const CACHE_NAME = 'leasevora-v11';
 
 const STATIC_ASSETS = [
   '/',
