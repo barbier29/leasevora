@@ -49,6 +49,11 @@ app.get('/l/:token', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'portail.html'));
 });
 
+// Réinitialisation de mot de passe (lien envoyé par email)
+app.get('/reset/:token', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'reset.html'));
+});
+
 // All other /api routes require authentication
 app.use('/api', requireAuth);
 

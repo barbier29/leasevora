@@ -195,7 +195,10 @@ function showLogin(errorMsg) {
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px">Se connecter</button>
       </form>
-      <div style="margin-top:16px;text-align:center;font-size:13px">
+      <div style="margin-top:12px;text-align:center;font-size:13px">
+        <a href="#" id="show-forgot" style="color:var(--text-3)">Mot de passe oublié ?</a>
+      </div>
+      <div style="margin-top:10px;text-align:center;font-size:13px">
         <span style="color:var(--text-3)">Nouveau sur Leasevora ?</span>
         <a href="#" id="show-signup" style="font-weight:600">Créer le compte de votre entreprise</a>
       </div>
@@ -204,6 +207,19 @@ function showLogin(errorMsg) {
     overlay.style.display = 'flex';
 
     document.getElementById('show-signup').addEventListener('click', e => { e.preventDefault(); showSignup(); });
+    document.getElementById('show-forgot').addEventListener('click', async e => {
+        e.preventDefault();
+        const id = prompt('Entrez votre identifiant ou votre adresse email :');
+        if (!id || !id.trim()) return;
+        try {
+            const r = await fetch('/api/auth/forgot-password', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identifiant: id.trim() }),
+            });
+            const d = await r.json();
+            alert(d.message || d.error || 'Demande envoyée.');
+        } catch { alert('Erreur réseau'); }
+    });
 
     document.getElementById('login-form').addEventListener('submit', async e => {
         e.preventDefault();
@@ -270,6 +286,10 @@ function showSignup(errorMsg) {
           <input class="form-control" id="su-prenom" placeholder="Ex : Kofi" />
         </div>
         <div class="form-group">
+          <label class="form-label">Votre email * <span style="color:var(--text-3);font-weight:400">(pour récupérer votre compte)</span></label>
+          <input class="form-control" id="su-email" type="email" autocomplete="email" placeholder="Ex : kofi@gmail.com" />
+        </div>
+        <div class="form-group">
           <label class="form-label">Identifiant de connexion *</label>
           <input class="form-control" id="su-login" autocomplete="username" placeholder="Ex : kofi.agbeko" />
         </div>
@@ -294,6 +314,7 @@ function showSignup(errorMsg) {
                     entreprise: document.getElementById('su-entreprise').value.trim(),
                     nom: document.getElementById('su-nom').value.trim(),
                     prenom: document.getElementById('su-prenom').value.trim(),
+                    email: document.getElementById('su-email').value.trim(),
                     login: document.getElementById('su-login').value.trim(),
                     password: document.getElementById('su-pwd').value,
                 }),
