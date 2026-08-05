@@ -16,7 +16,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=15" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -89,28 +89,42 @@
   </div>
   <div id="toast-container"></div>
 
-  <script src="pages/dashboard.js"></script>
-  <script src="pages/properties.js"></script>
-  <script src="pages/units.js"></script>
-  <script src="pages/locataires.js"></script>
-  <script src="pages/sejours.js"></script>
-  <script src="pages/calendrier.js"></script>
-  <script src="pages/transactions.js"></script>
-  <script src="pages/caisse.js"></script>
-  <script src="pages/comptes.js"></script>
-  <script src="pages/finance.js"></script>
-  <script src="pages/travaux.js"></script>
-  <script src="pages/compteurs.js"></script>
-  <script src="pages/categories.js"></script>
-  <script src="pages/users.js"></script>
-  <script src="pages/notes.js"></script>
-  <script src="pages/paiements.js"></script>
-  <script src="app.js"></script>
+  <script src="pages/dashboard.js?v=15"></script>
+  <script src="pages/properties.js?v=15"></script>
+  <script src="pages/units.js?v=15"></script>
+  <script src="pages/locataires.js?v=15"></script>
+  <script src="pages/sejours.js?v=15"></script>
+  <script src="pages/calendrier.js?v=15"></script>
+  <script src="pages/transactions.js?v=15"></script>
+  <script src="pages/caisse.js?v=15"></script>
+  <script src="pages/comptes.js?v=15"></script>
+  <script src="pages/finance.js?v=15"></script>
+  <script src="pages/travaux.js?v=15"></script>
+  <script src="pages/compteurs.js?v=15"></script>
+  <script src="pages/categories.js?v=15"></script>
+  <script src="pages/users.js?v=15"></script>
+  <script src="pages/notes.js?v=15"></script>
+  <script src="pages/paiements.js?v=15"></script>
+  <script src="app.js?v=15"></script>
 
   <script>
+    // Mise à jour automatique de l'application.
+    // Sans ça, un utilisateur garde l'ancien JavaScript en cache après un
+    // déploiement : il voit un formulaire périmé pendant que le serveur
+    // attend les nouveaux champs. updateViaCache:'none' force le navigateur
+    // à revérifier sw.js à chaque chargement ; controllerchange recharge la
+    // page une seule fois quand un nouveau Service Worker prend la main.
     if ('serviceWorker' in navigator) {
+      let reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloading) return;          // garde-fou anti-boucle de rechargement
+        reloading = true;
+        location.reload();
+      });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
+        navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+          .then(reg => reg.update())
+          .catch(() => {});
       });
     }
   </script>
