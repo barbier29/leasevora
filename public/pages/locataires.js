@@ -140,7 +140,7 @@ async function renderLocatairesPage(container) {
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Caution (€)</label>
+            <label class="form-label">Caution (${window.CURR.symbol})</label>
             <input class="form-control" id="f-caution" type="number" min="0" step="0.01" value="${loc?.caution || 0}" />
           </div>
           <div class="form-group">

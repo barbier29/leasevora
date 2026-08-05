@@ -6,7 +6,7 @@ const { requireRole } = require('../middleware/auth');
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'CAD', 'AED', 'XOF', 'XAF', 'MAD', 'TND', 'DZD', 'NGN', 'GHS', 'KES', 'ZAR', 'GNF', 'JPY', 'BRL', 'MXN', 'XPF'];
 const LANGUAGES  = ['fr', 'en'];
 
-// GET settings — tous les utilisateurs authentifiés
+// GET settings — tous les utilisateurs authentifiés (nécessaire pour le boot de l'app : devise, langue)
 router.get('/', (req, res) => {
     const data = load();
     res.json(data.settings);
