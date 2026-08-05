@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const { load, save, nextId } = require('../store');
 
 // Simple token store (in-memory; resets on server restart — fine for MVP)
@@ -8,8 +9,27 @@ const sessions = new Map();
 // Session expiration: 24 hours in milliseconds
 const SESSION_TTL = 24 * 3600 * 1000;
 
-function hashPwd(password) {
+// Ancien schéma (SHA-256 + sel statique) — conservé UNIQUEMENT pour vérifier
+// les hashs existants ; tout nouveau hash passe par bcrypt. Au premier login
+// réussi d'un utilisateur legacy, son hash est migré vers bcrypt (routes/auth.js).
+function legacySha256Pwd(password) {
     return crypto.createHash('sha256').update('pm_salt_2024:' + password).digest('hex');
+}
+
+function hashPwd(password) {
+    return bcrypt.hashSync(password, 10);
+}
+
+// Vérifie un mot de passe contre un hash bcrypt OU legacy sha256
+function verifyPwd(password, stored) {
+    if (!stored) return false;
+    if (stored.startsWith('$2')) return bcrypt.compareSync(password, stored);
+    return stored === legacySha256Pwd(password);
+}
+
+// Le hash est-il encore au format legacy (à migrer) ?
+function isLegacyHash(stored) {
+    return !!stored && !stored.startsWith('$2');
 }
 
 function createToken() {
@@ -105,4 +125,4 @@ function denyRoles(...roles) {
     };
 }
 
-module.exports = { hashPwd, createToken, sessions, seedAdmin, seedDemo, requireAuth, requireRole, requireNotDemo, denyRoles };
+module.exports = { hashPwd, verifyPwd, isLegacyHash, createToken, sessions, seedAdmin, seedDemo, requireAuth, requireRole, requireNotDemo, denyRoles };

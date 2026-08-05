@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { load, save } = require('../store');
-const { hashPwd, createToken, sessions, requireAuth } = require('../middleware/auth');
+const { hashPwd, verifyPwd, isLegacyHash, createToken, sessions, requireAuth } = require('../middleware/auth');
 
 // AUDIT 4 — Protection brute-force : compteur d'échecs par IP
 // Structure : ip → { count: number, resetAt: timestamp }
@@ -34,7 +34,7 @@ router.post('/login', (req, res) => {
 
     const data = load();
     const user = data.users.find(u => u.login === login && u.actif !== false);
-    if (!user || user.password !== hashPwd(password)) {
+    if (!user || !verifyPwd(password, user.password)) {
         // Incrémenter le compteur d'échecs
         const current = loginAttempts.get(ip) || { count: 0, resetAt: now + BRUTE_WINDOW };
         current.count += 1;
@@ -45,11 +45,23 @@ router.post('/login', (req, res) => {
     // Authentification réussie : réinitialiser le compteur
     loginAttempts.delete(ip);
 
+    // Migration transparente : hash legacy sha256 → bcrypt au premier login réussi
+    if (isLegacyHash(user.password)) {
+        user.password = hashPwd(password);
+        save(data);
+    }
+
     const token = createToken();
     const payload = { id: user.id, nom: user.nom, prenom: user.prenom, email: user.email, login: user.login, role: user.role };
     // AUDIT 1 — Stocker { user, createdAt } pour la gestion de l'expiration de session
     sessions.set(token, { user: payload, createdAt: Date.now() });
-    res.json({ token, user: payload });
+
+    // Mot de passe d'usine encore actif sur un compte non-démo → alerte affichée au front
+    const response = { token, user: payload };
+    if (user.login !== 'demo' && (password === 'admin123' || password === user.login + '123')) {
+        response.warning = '⚠️ Vous utilisez encore le mot de passe par défaut. Changez-le immédiatement : il est connu de tous.';
+    }
+    res.json(response);
 });
 
 // POST /api/auth/change-password
@@ -71,7 +83,7 @@ router.post('/change-password', requireAuth, async (req, res) => {
     const user = d.users.find(u => u.id === req.user.id);
     if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
 
-    if (user.password !== hashPwd(currentPassword))
+    if (!verifyPwd(currentPassword, user.password))
         return res.status(401).json({ error: 'Mot de passe actuel incorrect' });
 
     user.password = hashPwd(newPassword);

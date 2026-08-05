@@ -213,6 +213,7 @@ function showLogin(errorMsg) {
             localStorage.setItem('pm_token', data.token);
             localStorage.setItem('pm_user', JSON.stringify(data.user));
             overlay.style.display = 'none';
+            if (data.warning) alert(data.warning);
             bootApp(data.user);
         } catch { showLogin('Serveur indisponible'); }
     });
