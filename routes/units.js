@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { load, save, nextId } = require('../store');
+const { load, save, nextId, scoped } = require('../store');
 const { requireRole } = require('../middleware/auth');
 
 const hasHtml = s => typeof s === 'string' && /[<>]/.test(s);
@@ -12,7 +12,7 @@ function withPropName(unit, data) {
 }
 
 router.get('/', (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const { property_id } = req.query;
     let units = property_id
         ? data.units.filter(u => u.property_id === Number(property_id))
@@ -21,7 +21,7 @@ router.get('/', (req, res) => {
 });
 
 router.get('/:id', (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const unit = data.units.find(u => u.id === Number(req.params.id));
     if (!unit) return res.status(404).json({ error: 'Non trouvé' });
     res.json(withPropName(unit, data));
@@ -34,7 +34,7 @@ router.post('/', MGR, (req, res) => {
             nb_chambres, nb_sdb, meuble, balcon, cave, parking_inclus } = req.body;
     if (!property_id || !label) return res.status(400).json({ error: 'property_id et label requis' });
     if (hasHtml(label)) return res.status(400).json({ error: 'Le label ne peut pas contenir < ou >' });
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const unit = {
         id: nextId(data, 'units'),
         property_id: Number(property_id),
@@ -63,7 +63,7 @@ router.put('/:id', MGR, (req, res) => {
     const { label, status, expected_rent, type, nb_pieces, surface, etage, description,
             nb_chambres, nb_sdb, meuble, balcon, cave, parking_inclus } = req.body;
     if (hasHtml(label)) return res.status(400).json({ error: 'Le label ne peut pas contenir < ou >' });
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const idx = data.units.findIndex(u => u.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
     data.units[idx] = {
@@ -88,7 +88,7 @@ router.put('/:id', MGR, (req, res) => {
 });
 
 router.delete('/:id', MGR, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const id = Number(req.params.id);
     data.units = data.units.filter(u => u.id !== id);
     data.transactions = data.transactions.map(t => t.unit_id === id ? { ...t, unit_id: null } : t);

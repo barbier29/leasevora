@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
-const { load, save, nextId } = require('../store');
+const { load, save, nextId, scoped } = require('../store');
 const { requireRole } = require('../middleware/auth');
 
 // Modes de paiement acceptés (Togo : T-Money = Togocom/Yas, Flooz = Moov)
@@ -27,7 +27,7 @@ function monthOf(date) { return date ? date.slice(0, 7) : ''; }
 
 router.get('/', MGR, (req, res) => {
     const { property_id, unit_id, month, source, sejour_id } = req.query;
-    const data = load();
+    const data = scoped(load(), req.orgId);
     let txns = data.transactions;
     if (property_id) txns = txns.filter(t => t.property_id === Number(property_id));
     if (unit_id) txns = txns.filter(t => t.unit_id === Number(unit_id));
@@ -39,7 +39,7 @@ router.get('/', MGR, (req, res) => {
 });
 
 router.get('/:id', MGR, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const t = data.transactions.find(t => t.id === Number(req.params.id));
     if (!t) return res.status(404).json({ error: 'Non trouvé' });
     res.json(enrich(t, data));
@@ -58,7 +58,7 @@ router.post('/', MGR, (req, res) => {
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0)
         return res.status(400).json({ error: 'Le montant doit être un nombre positif' });
-    const data = load();
+    const data = scoped(load(), req.orgId);
 
     // Auto-dériver property_id et unit_id depuis le séjour si non fournis
     let resolvedPropertyId = property_id ? Number(property_id) : null;
@@ -117,7 +117,7 @@ router.put('/:id', MGR, (req, res) => {
         return res.status(400).json({ error: 'Le montant doit être positif' });
     if (mode_paiement && !MODES_PAIEMENT.includes(mode_paiement))
         return res.status(400).json({ error: `Mode de paiement invalide. Valeurs : ${MODES_PAIEMENT.join(', ')}` });
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const idx = data.transactions.findIndex(t => t.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
 
@@ -165,7 +165,7 @@ router.put('/:id', MGR, (req, res) => {
 });
 
 router.delete('/:id', MGR, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const t = data.transactions.find(t => t.id === Number(req.params.id));
     if (!t) return res.status(404).json({ error: 'Non trouvé' });
     // Anti-fraude : un paiement contesté par le locataire ne peut pas être supprimé —

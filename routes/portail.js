@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { load, save, nextId } = require('../store');
+const { load, save, nextId, allOrgs } = require('../store');
 
 const MODES_PAIEMENT = ['ESPECES', 'TMONEY', 'FLOOZ', 'VIREMENT', 'CARTE', 'CHEQUE', 'AUTRE'];
 
@@ -31,6 +31,16 @@ function computeTotal(s) {
     return s.montant * Math.max(1, days);
 }
 
+// Cherche le locataire dans TOUTES les entreprises (le portal_token est
+// globalement unique) et renvoie le bucket de son entreprise.
+function findLocataireByToken(data, token) {
+    for (const { org } of allOrgs(data)) {
+        const loc = (org.locataires || []).find(l => l.portal_token === token);
+        if (loc) return { loc, org };
+    }
+    return null;
+}
+
 // GET /api/portail/:token — l'espace du locataire
 router.get('/:token', rateLimit, (req, res) => {
     const token = req.params.token;
@@ -38,15 +48,16 @@ router.get('/:token', rateLimit, (req, res) => {
         return res.status(404).json({ error: 'Lien invalide.' });
 
     const data = load();
-    const loc = (data.locataires || []).find(l => l.portal_token === token);
-    if (!loc) return res.status(404).json({ error: 'Lien invalide.' });
+    const hit = findLocataireByToken(data, token);
+    if (!hit) return res.status(404).json({ error: 'Lien invalide.' });
+    const { loc, org } = hit;
 
-    const sejours = (data.sejours || [])
+    const sejours = (org.sejours || [])
         .filter(s => s.locataire_id === loc.id)
         .map(s => {
-            const unit = data.units.find(u => u.id === s.unit_id) || {};
-            const prop = data.properties.find(p => p.id === unit.property_id) || {};
-            const paiements = (data.transactions || [])
+            const unit = org.units.find(u => u.id === s.unit_id) || {};
+            const prop = org.properties.find(p => p.id === unit.property_id) || {};
+            const paiements = (org.transactions || [])
                 .filter(t => t.sejour_id === s.id && t.kind === 'IN')
                 .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
                 .map(t => ({
@@ -59,7 +70,7 @@ router.get('/:token', rateLimit, (req, res) => {
             const totalDu = s.montant_total_du || computeTotal(s);
             const totalPaye = paiements.reduce((sum, p) => sum + p.montant, 0);
             // Déclarations du locataire pour ce séjour (paiements qu'il signale lui-même)
-            const declarations = (data.declarations || [])
+            const declarations = (org.declarations || [])
                 .filter(dcl => dcl.sejour_id === s.id && dcl.locataire_id === loc.id)
                 .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
                 .map(dcl => ({
@@ -89,7 +100,7 @@ router.get('/:token', rateLimit, (req, res) => {
     res.json({
         prenom: loc.prenom || null,
         nom: loc.nom,
-        devise: data.settings?.currency || 'XOF',
+        devise: org.settings?.currency || 'XOF',
         sejours,
     });
 });
@@ -104,14 +115,15 @@ router.post('/:token/declarer', rateLimit, (req, res) => {
         return res.status(404).json({ error: 'Lien invalide.' });
 
     const data = load();
-    const loc = (data.locataires || []).find(l => l.portal_token === token);
-    if (!loc) return res.status(404).json({ error: 'Lien invalide.' });
+    const hit = findLocataireByToken(data, token);
+    if (!hit) return res.status(404).json({ error: 'Lien invalide.' });
+    const { loc, org } = hit;
 
     const { sejour_id, montant, date, mode_paiement, reference_paiement, commentaire } = req.body || {};
 
     // Le séjour doit exister ET appartenir à ce locataire — pas de déclaration
     // sur le logement de quelqu'un d'autre.
-    const sejour = (data.sejours || []).find(s => s.id === Number(sejour_id) && s.locataire_id === loc.id);
+    const sejour = (org.sejours || []).find(s => s.id === Number(sejour_id) && s.locataire_id === loc.id);
     if (!sejour) return res.status(400).json({ error: 'Logement introuvable.' });
 
     const parsedMontant = parseFloat(montant);
@@ -125,7 +137,7 @@ router.post('/:token/declarer', rateLimit, (req, res) => {
         return res.status(400).json({ error: 'Mode de paiement invalide.' });
 
     // Anti-abus : maximum 10 déclarations en attente par locataire
-    const pending = (data.declarations || []).filter(d => d.locataire_id === loc.id && d.statut === 'EN_ATTENTE');
+    const pending = (org.declarations || []).filter(d => d.locataire_id === loc.id && d.statut === 'EN_ATTENTE');
     if (pending.length >= 10)
         return res.status(429).json({ error: 'Trop de déclarations en attente. Attendez leur traitement.' });
 
@@ -144,8 +156,8 @@ router.post('/:token/declarer', rateLimit, (req, res) => {
         created_at: new Date().toISOString(),
         historique: [{ action: 'DECLARE_PAR_LOCATAIRE', date: new Date().toISOString() }],
     };
-    data.declarations = data.declarations || [];
-    data.declarations.push(decl);
+    org.declarations = org.declarations || [];
+    org.declarations.push(decl);
     save(data);
     res.status(201).json({ statut: decl.statut });
 });

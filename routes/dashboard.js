@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { load } = require('../store');
+const { load, scoped } = require('../store');
 const { denyRoles } = require('../middleware/auth');
 
 const NO_TECH = denyRoles('TECHNICIEN');
@@ -8,7 +8,7 @@ const NO_TECH = denyRoles('TECHNICIEN');
 router.get('/', NO_TECH, (req, res) => {
   const now = new Date();
   const month = req.query.month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const data = load();
+  const data = scoped(load(), req.orgId);
   const isRestricted = ['EMPLOYE', 'AGENT'].includes(req.user.role);
 
   // ── Taux d'occupation & travaux (tous les rôles) ──────────────────────────

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { load } = require('../store');
+const { load, scoped } = require('../store');
 const { requireRole, requireAuth } = require('../middleware/auth');
 
 const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE');
@@ -30,7 +30,7 @@ function computePaymentStatus(s, data) {
 // GET /api/paiements/suivi — tableau de bord de suivi des paiements
 router.get('/suivi', MGR, (req, res) => {
     const { statut, locataire_id } = req.query;
-    const data = load();
+    const data = scoped(load(), req.orgId);
 
     // Build a lookup for units and properties
     const unitMap = {};

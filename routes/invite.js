@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
-const { load, save, nextId } = require('../store');
+const { load, save, nextId, orgOf } = require('../store');
 const { hashPwd, requireAuth, requireRole } = require('../middleware/auth');
 
 const ROLES = ['PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT', 'TECHNICIEN'];
@@ -68,6 +68,7 @@ router.post('/', requireAuth, requireRole('PROPRIETAIRE'), async (req, res) => {
         role,
         permissions: Array.isArray(permissions) ? permissions : [],
         invited_by: req.user.id,
+        org_id: req.orgId, // l'invité rejoindra l'entreprise de l'inviteur
         invited_by_nom: `${req.user.prenom || ''} ${req.user.nom}`.trim(),
         created_at: new Date().toISOString(),
         expires_at: new Date(Date.now() + INVITE_TTL).toISOString(),
@@ -81,7 +82,7 @@ router.post('/', requireAuth, requireRole('PROPRIETAIRE'), async (req, res) => {
     const link = `${host}/invite.html?token=${token}`;
 
     // Tenter l'envoi email
-    const emailSent = await sendInviteEmail(email, link, invitation.invited_by_nom, data.settings || {});
+    const emailSent = await sendInviteEmail(email, link, invitation.invited_by_nom, orgOf(data, req.orgId).settings || {});
 
     res.status(201).json({ success: true, link, emailSent, token });
 });
@@ -101,6 +102,7 @@ router.post('/:token/accept', (req, res) => {
     const { nom, prenom, login, password } = req.body;
     if (!nom || !login || !password) return res.status(400).json({ error: 'nom, login et password requis' });
     if (password.length < 6) return res.status(400).json({ error: 'Le mot de passe doit faire au moins 6 caractères' });
+    if (/[<>]/.test(nom) || (prenom && /[<>]/.test(prenom))) return res.status(400).json({ error: 'Le nom ne peut pas contenir < ou >' });
 
     const data = load();
     const idx = (data.invitations || []).findIndex(i => i.token === req.params.token);
@@ -121,6 +123,7 @@ router.post('/:token/accept', (req, res) => {
         login,
         password: hashPwd(password),
         role: inv.role,
+        org_id: inv.org_id || 1,
         permissions: inv.permissions || [],
         actif: true,
         created_at: new Date().toISOString(),

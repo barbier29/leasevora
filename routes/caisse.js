@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { load } = require('../store');
+const { load, scoped } = require('../store');
 const { requireRole } = require('../middleware/auth');
 
 const MGR = requireRole('PROPRIETAIRE');
@@ -15,7 +15,7 @@ const MGR = requireRole('PROPRIETAIRE');
  *   - month       — filtrer sur un mois (YYYY-MM)
  */
 router.get('/', MGR, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const { property_id, month, compte_id } = req.query;
 
     const comptes = (data.comptes || []).filter(c => c.actif);

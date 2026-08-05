@@ -187,7 +187,7 @@ function showLogin(errorMsg) {
       <form id="login-form">
         <div class="form-group">
           <label class="form-label">Identifiant</label>
-          <input class="form-control" id="li-login" autocomplete="username" placeholder="admin" autofocus />
+          <input class="form-control" id="li-login" autocomplete="username" placeholder="votre identifiant" autofocus />
         </div>
         <div class="form-group">
           <label class="form-label">Mot de passe</label>
@@ -195,9 +195,15 @@ function showLogin(errorMsg) {
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px">Se connecter</button>
       </form>
-      <p style="margin-top:18px;text-align:center;font-size:11px;color:var(--text-3)">Leasevora v1.0.0</p>
+      <div style="margin-top:16px;text-align:center;font-size:13px">
+        <span style="color:var(--text-3)">Nouveau sur Leasevora ?</span>
+        <a href="#" id="show-signup" style="font-weight:600">Créer le compte de votre entreprise</a>
+      </div>
+      <p style="margin-top:14px;text-align:center;font-size:11px;color:var(--text-3)">Leasevora v1.0.0</p>
     </div>`;
     overlay.style.display = 'flex';
+
+    document.getElementById('show-signup').addEventListener('click', e => { e.preventDefault(); showSignup(); });
 
     document.getElementById('login-form').addEventListener('submit', async e => {
         e.preventDefault();
@@ -214,8 +220,92 @@ function showLogin(errorMsg) {
             localStorage.setItem('pm_user', JSON.stringify(data.user));
             overlay.style.display = 'none';
             if (data.warning) alert(data.warning);
+            if (data.must_change_password) await forcePasswordChange(password);
             bootApp(data.user);
         } catch { showLogin('Serveur indisponible'); }
+    });
+}
+
+// ── Mot de passe provisoire : changement imposé à la première connexion ────
+async function forcePasswordChange(currentPassword) {
+    while (true) {
+        const p1 = prompt('🔐 Votre mot de passe est provisoire (choisi par un collègue).\nChoisissez VOTRE nouveau mot de passe (6 caractères minimum) :');
+        if (p1 === null) continue; // pas d'échappatoire : le provisoire ne doit pas rester
+        if (p1.length < 6) { alert('6 caractères minimum.'); continue; }
+        const p2 = prompt('Confirmez le nouveau mot de passe :');
+        if (p1 !== p2) { alert('Les deux saisies ne correspondent pas.'); continue; }
+        try {
+            const r = await fetch('/api/auth/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('pm_token') },
+                body: JSON.stringify({ currentPassword, newPassword: p1 }),
+            });
+            if (r.ok) { alert('✓ Mot de passe changé. Bienvenue !'); return; }
+            const d = await r.json();
+            alert(d.error || 'Erreur');
+        } catch { alert('Erreur réseau'); }
+    }
+}
+
+// ── Inscription : créer l'espace de son entreprise ─────────────────────────
+function showSignup(errorMsg) {
+    const overlay = document.getElementById('login-overlay');
+    overlay.innerHTML = `
+    <div class="login-card">
+      <div class="login-brand">🪹<span>Leasevora</span></div>
+      <h2 class="login-title">Créer votre compte</h2>
+      <p style="font-size:12.5px;color:var(--text-3);margin:-6px 0 14px">Un espace privé pour votre entreprise ou votre patrimoine — vos données ne sont visibles que de vous et des collègues que vous inviterez.</p>
+      ${errorMsg ? `<div class="login-error">${errorMsg}</div>` : ''}
+      <form id="signup-form">
+        <div class="form-group">
+          <label class="form-label">Nom de l'entreprise / du patrimoine *</label>
+          <input class="form-control" id="su-entreprise" placeholder="Ex : Immeubles GALAXY" autofocus />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Votre nom *</label>
+          <input class="form-control" id="su-nom" placeholder="Ex : AGBEKO" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Votre prénom</label>
+          <input class="form-control" id="su-prenom" placeholder="Ex : Kofi" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Identifiant de connexion *</label>
+          <input class="form-control" id="su-login" autocomplete="username" placeholder="Ex : kofi.agbeko" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mot de passe * <span style="color:var(--text-3);font-weight:400">(6 caractères min.)</span></label>
+          <input class="form-control" id="su-pwd" type="password" autocomplete="new-password" placeholder="••••••••" />
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px">Créer mon espace</button>
+      </form>
+      <div style="margin-top:16px;text-align:center;font-size:13px">
+        <span style="color:var(--text-3)">Déjà un compte ?</span>
+        <a href="#" id="show-login-back" style="font-weight:600">Se connecter</a>
+      </div>
+    </div>`;
+    document.getElementById('show-login-back').addEventListener('click', e => { e.preventDefault(); showLogin(); });
+    document.getElementById('signup-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        try {
+            const r = await fetch('/api/auth/signup', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    entreprise: document.getElementById('su-entreprise').value.trim(),
+                    nom: document.getElementById('su-nom').value.trim(),
+                    prenom: document.getElementById('su-prenom').value.trim(),
+                    login: document.getElementById('su-login').value.trim(),
+                    password: document.getElementById('su-pwd').value,
+                }),
+            });
+            const data = await r.json();
+            if (!r.ok) return showSignup(data.error || 'Erreur');
+            localStorage.setItem('pm_token', data.token);
+            localStorage.setItem('pm_user', JSON.stringify(data.user));
+            overlay.style.display = 'none';
+            alert('🎉 Bienvenue ! Votre espace est prêt.\n\nProchaines étapes :\n1. Créez votre premier immeuble (Propriétés)\n2. Ajoutez ses appartements\n3. Invitez vos collègues (Utilisateurs)');
+            bootApp(data.user);
+        } catch { showSignup('Serveur indisponible'); }
     });
 }
 

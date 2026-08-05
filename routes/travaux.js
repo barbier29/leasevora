@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { load, save, nextId } = require('../store');
+const { load, save, nextId, scoped } = require('../store');
 const { requireRole, requireAuth } = require('../middleware/auth');
 
 const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT', 'TECHNICIEN');
@@ -20,7 +20,7 @@ function enrich(t, data) {
 // GET — tous les rôles
 router.get('/', requireAuth, (req, res) => {
     const { property_id, statut, type_travail } = req.query;
-    const data = load();
+    const data = scoped(load(), req.orgId);
     let list = data.travaux;
     if (property_id) list = list.filter(t => t.property_id === Number(property_id));
     if (statut) list = list.filter(t => t.statut === statut);
@@ -34,7 +34,7 @@ router.get('/', requireAuth, (req, res) => {
 
 // GET single — tous les rôles
 router.get('/:id', requireAuth, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const t = data.travaux.find(t => t.id === Number(req.params.id));
     if (!t) return res.status(404).json({ error: 'Non trouvé' });
     res.json(enrich(t, data));
@@ -54,7 +54,7 @@ router.post('/', requireAuth, (req, res) => {
     const parsedFacture = parseFloat(montant_facture);
     if (!isNaN(parsedFacture) && parsedFacture <= 0)
         return res.status(400).json({ error: 'Le montant doit être positif' });
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const t = {
         id: nextId(data, 'travaux'),
         property_id: Number(property_id),
@@ -94,7 +94,7 @@ router.put('/:id', requireAuth, (req, res) => {
     const parsedFacture = parseFloat(montant_facture);
     if (!isNaN(parsedFacture) && parsedFacture <= 0)
         return res.status(400).json({ error: 'Le montant doit être positif' });
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const idx = data.travaux.findIndex(t => t.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
     const prev = data.travaux[idx];
@@ -145,7 +145,7 @@ router.patch('/:id/statut', requireAuth, (req, res) => {
     if (!statut) return res.status(400).json({ error: 'statut requis' });
     if (!STATUTS_VALIDES.includes(statut))
         return res.status(400).json({ error: `Statut invalide. Valeurs acceptées : ${STATUTS_VALIDES.join(', ')}` });
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const idx = data.travaux.findIndex(t => t.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
     const prev = data.travaux[idx];
@@ -171,7 +171,7 @@ router.patch('/:id/statut', requireAuth, (req, res) => {
 
 // DELETE — PROPRIETAIRE + GESTIONNAIRE seulement
 router.delete('/:id', MGR, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     data.travaux = data.travaux.filter(t => t.id !== Number(req.params.id));
     save(data);
     res.json({ success: true });

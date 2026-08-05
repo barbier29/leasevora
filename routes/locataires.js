@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
-const { load, save, nextId } = require('../store');
+const { load, save, nextId, scoped } = require('../store');
 const { requireRole, denyRoles } = require('../middleware/auth');
 
 const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT');
@@ -13,12 +13,12 @@ const NO_TECH = denyRoles('TECHNICIEN');
 const hasHtml = s => typeof s === 'string' && /[<>]/.test(s);
 
 router.get('/', NO_TECH, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     res.json([...data.locataires].sort((a, b) => a.nom.localeCompare(b.nom)));
 });
 
 router.get('/:id', NO_TECH, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const l = data.locataires.find(l => l.id === Number(req.params.id));
     if (!l) return res.status(404).json({ error: 'Non trouvé' });
     const sejours = data.sejours.filter(s => s.locataire_id === l.id).map(s => {
@@ -33,7 +33,7 @@ router.post('/', MGR, (req, res) => {
     const { nom, prenom, email, telephone, num_piece_identite, type_piece, caution, notes } = req.body;
     if (!nom) return res.status(400).json({ error: 'nom requis' });
     if (hasHtml(nom) || hasHtml(prenom)) return res.status(400).json({ error: 'Le nom ne peut pas contenir < ou >' });
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const l = {
         id: nextId(data, 'locataires'),
         nom, prenom: prenom || null,
@@ -54,7 +54,7 @@ router.post('/', MGR, (req, res) => {
 router.put('/:id', MGR, (req, res) => {
     const { nom, prenom, email, telephone, num_piece_identite, type_piece, caution, notes } = req.body;
     if (hasHtml(nom) || hasHtml(prenom)) return res.status(400).json({ error: 'Le nom ne peut pas contenir < ou >' });
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const idx = data.locataires.findIndex(l => l.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
     data.locataires[idx] = {
@@ -71,7 +71,7 @@ router.put('/:id', MGR, (req, res) => {
 });
 
 router.delete('/:id', MGR, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     data.locataires = data.locataires.filter(l => l.id !== Number(req.params.id));
     data.sejours = data.sejours.map(s =>
         s.locataire_id === Number(req.params.id) ? { ...s, locataire_id: null } : s

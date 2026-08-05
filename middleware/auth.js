@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
-const { load, save, nextId } = require('../store');
+const { load, save, nextId, orgOf, newOrg } = require('../store');
 
 // Simple token store (in-memory; resets on server restart — fine for MVP)
 // Sessions stored as: token → { user: { id, nom, role, ... }, createdAt: timestamp }
@@ -36,10 +36,13 @@ function createToken() {
     return crypto.randomBytes(32).toString('hex');
 }
 
-// Seed admin user if no users exist
+// Seed admin user if no users exist (confort de dev local — en production,
+// les comptes se créent via l'inscription publique /api/auth/signup)
 function seedAdmin() {
     const data = load();
     if (data.users.length === 0) {
+        orgOf(data, 1); // s'assurer que l'entreprise 1 existe
+        if (!data._seq.orgs) data._seq.orgs = 1;
         data.users.push({
             id: nextId(data, 'users'),
             nom: 'Admin',
@@ -48,6 +51,7 @@ function seedAdmin() {
             login: 'admin',
             password: hashPwd('admin123'),
             role: 'PROPRIETAIRE',
+            org_id: 1,
             actif: true,
             created_at: new Date().toISOString(),
         });
@@ -56,11 +60,15 @@ function seedAdmin() {
     }
 }
 
-// Seed compte démo — toujours présent, jamais supprimable
+// Seed compte démo — toujours présent, jamais supprimable.
+// Le démo vit dans SA PROPRE entreprise vide : ses GET connus sont interceptés
+// par demo-data.js, et pour tout le reste il ne voit que du vide — jamais les
+// données réelles d'une vraie entreprise.
 function seedDemo() {
     const data = load();
     const exists = data.users.find(u => u.login === 'demo');
     if (!exists) {
+        const demoOrgId = newOrg(data, 'Entreprise de démonstration');
         data.users.push({
             id: nextId(data, 'users'),
             nom: 'Démo',
@@ -69,6 +77,7 @@ function seedDemo() {
             login: 'demo',
             password: hashPwd('demo123'),
             role: 'GESTIONNAIRE',
+            org_id: demoOrgId,
             permissions: ['dashboard','properties','units','locataires','sejours','calendrier','travaux','compteurs'],
             actif: true,
             is_demo: true,
@@ -76,6 +85,11 @@ function seedDemo() {
         });
         save(data);
         console.log('✅  Compte démo créé — login: demo / mot de passe: demo123');
+    } else if (exists.org_id === 1) {
+        // Démo hérité de l'époque mono-entreprise : l'isoler dans sa propre org
+        exists.org_id = newOrg(data, 'Entreprise de démonstration');
+        save(data);
+        console.log('✅  Compte démo isolé dans sa propre entreprise');
     }
 }
 
@@ -101,6 +115,7 @@ function requireAuth(req, res, next) {
         return res.status(401).json({ error: 'Session expirée, veuillez vous reconnecter' });
     }
     req.user = session.user;
+    req.orgId = session.user.org_id || 1; // cloison multi-entreprise
     req.token = token;
     next();
 }

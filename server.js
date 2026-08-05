@@ -4,7 +4,8 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
-require('./db');
+// NB : l'ancien require('./db') (seed de catégories anglaises à la racine) est
+// supprimé — les catégories par défaut sont seedées par entreprise dans store.js.
 
 const { seedAdmin, seedDemo, requireAuth, requireNotDemo } = require('./middleware/auth');
 // seedAdmin() est appelé APRÈS syncFromSupabase() dans app.listen

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
-const { load, save, nextId } = require('../store');
+const { load, save, nextId, scoped } = require('../store');
 const { requireRole } = require('../middleware/auth');
 
 // Déclarations de paiement faites par les locataires depuis leur portail.
@@ -25,7 +25,7 @@ function enrich(d, data) {
 
 // GET /api/declarations — toutes les déclarations, EN_ATTENTE d'abord
 router.get('/', MGR, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const order = { EN_ATTENTE: 0, REJETEE: 1, VALIDEE: 2 };
     const list = (data.declarations || [])
         .slice()
@@ -41,7 +41,7 @@ router.get('/', MGR, (req, res) => {
 // transaction. verif_statut = CONFIRME d'office : c'est le locataire lui-même
 // qui a déclaré ce montant, sa confirmation est acquise par construction.
 router.post('/:id/valider', MGR, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const d = (data.declarations || []).find(x => x.id === Number(req.params.id));
     if (!d) return res.status(404).json({ error: 'Non trouvé' });
     if (d.statut !== 'EN_ATTENTE')
@@ -91,7 +91,7 @@ router.post('/:id/rejeter', MGR, (req, res) => {
     if (!motif || !motif.toString().trim())
         return res.status(400).json({ error: 'Un motif de rejet est obligatoire — il sera visible du propriétaire et du locataire.' });
 
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const d = (data.declarations || []).find(x => x.id === Number(req.params.id));
     if (!d) return res.status(404).json({ error: 'Non trouvé' });
     if (d.statut !== 'EN_ATTENTE')

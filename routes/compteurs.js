@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { load, save, nextId } = require('../store');
+const { load, save, nextId, scoped } = require('../store');
 const { requireRole, requireAuth } = require('../middleware/auth');
 
 const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT', 'TECHNICIEN');
@@ -19,7 +19,7 @@ function enrich(c, data) {
 // GET all — tous les rôles
 router.get('/', requireAuth, (req, res) => {
     const { unit_id, property_id, type } = req.query;
-    const data = load();
+    const data = scoped(load(), req.orgId);
     let list = data.compteurs;
 
     if (unit_id) list = list.filter(c => c.unit_id === Number(unit_id));
@@ -35,7 +35,7 @@ router.get('/', requireAuth, (req, res) => {
 
 // GET summary — tous les rôles
 router.get('/summary', requireAuth, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const types = ['EAU', 'ELECTRICITE', 'GAZ'];
 
     const summary = data.units.map(u => {
@@ -58,7 +58,7 @@ router.post('/', requireAuth, (req, res) => {
     const { unit_id, type, date, valeur, notes } = req.body;
     if (!unit_id || !type || !date || valeur === undefined)
         return res.status(400).json({ error: 'unit_id, type, date, valeur requis' });
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const c = {
         id: nextId(data, 'compteurs'),
         unit_id: Number(unit_id),
@@ -75,7 +75,7 @@ router.post('/', requireAuth, (req, res) => {
 
 // GET single — tous les rôles
 router.get('/:id', requireAuth, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const c = data.compteurs.find(c => c.id === Number(req.params.id));
     if (!c) return res.status(404).json({ error: 'Non trouvé' });
     res.json(enrich(c, data));
@@ -84,7 +84,7 @@ router.get('/:id', requireAuth, (req, res) => {
 // PUT update — tous les rôles authentifiés
 router.put('/:id', requireAuth, (req, res) => {
     const { unit_id, type, date, valeur, notes } = req.body;
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const idx = data.compteurs.findIndex(c => c.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
     data.compteurs[idx] = { ...data.compteurs[idx], unit_id: Number(unit_id), type, date, valeur: Number(valeur), notes: notes || null };
@@ -94,7 +94,7 @@ router.put('/:id', requireAuth, (req, res) => {
 
 // DELETE — PROPRIETAIRE + GESTIONNAIRE seulement
 router.delete('/:id', MGR, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     data.compteurs = data.compteurs.filter(c => c.id !== Number(req.params.id));
     save(data);
     res.json({ success: true });

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { load, save } = require('../store');
+const { load, save, scoped } = require('../store');
 const { requireRole, requireAuth, denyRoles } = require('../middleware/auth');
 
 const PROP = requireRole('PROPRIETAIRE');
@@ -8,7 +8,7 @@ const NO_AGENT_TECH = denyRoles('AGENT', 'TECHNICIEN');
 
 // GET /api/comptes — PROPRIETAIRE + GESTIONNAIRE uniquement
 router.get('/', requireAuth, NO_AGENT_TECH, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     res.json((data.comptes || []).sort((a, b) => a.id - b.id));
 });
 
@@ -17,7 +17,7 @@ router.post('/', PROP, (req, res) => {
     const { nom, type, solde_initial, nom_banque, numero_compte, iban, bic, description } = req.body;
     if (!nom || !['CAISSE', 'BANQUE'].includes(type))
         return res.status(400).json({ error: 'nom et type (CAISSE|BANQUE) requis' });
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const maxId = (data.comptes || []).reduce((m, c) => Math.max(m, c.id), 0);
     const compte = {
         id: maxId + 1,
@@ -40,7 +40,7 @@ router.post('/', PROP, (req, res) => {
 // PUT /api/comptes/:id — modifier un compte
 router.put('/:id', PROP, (req, res) => {
     const { nom, type, solde_initial, actif, nom_banque, numero_compte, iban, bic, description } = req.body;
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const idx = data.comptes.findIndex(c => c.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
     const prev = data.comptes[idx];
@@ -62,7 +62,7 @@ router.put('/:id', PROP, (req, res) => {
 
 // DELETE /api/comptes/:id — désactiver un compte (soft delete)
 router.delete('/:id', PROP, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const idx = data.comptes.findIndex(c => c.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
     // Vérifier qu'aucune transaction n'utilise ce compte

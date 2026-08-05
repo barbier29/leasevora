@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { load, save, nextId } = require('../store');
+const { load, save, nextId, scoped } = require('../store');
 const { requireRole, requireAuth, denyRoles } = require('../middleware/auth');
 
 const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT');
@@ -60,7 +60,7 @@ function enrich(s, data) {
 // GET all — tous sauf TECHNICIEN
 router.get('/', requireAuth, NO_TECH, (req, res) => {
     const { unit_id, property_id } = req.query;
-    const data = load();
+    const data = scoped(load(), req.orgId);
     let list = data.sejours;
     if (unit_id) list = list.filter(s => s.unit_id === Number(unit_id));
     if (property_id) {
@@ -73,7 +73,7 @@ router.get('/', requireAuth, NO_TECH, (req, res) => {
 
 // GET /sejours/cautions — vue d'ensemble des cautions
 router.get('/cautions', requireAuth, NO_TECH, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const cautions = data.sejours
         .filter(s => s.caution_montant > 0)
         .map(s => {
@@ -114,7 +114,7 @@ router.get('/cautions', requireAuth, NO_TECH, (req, res) => {
 
 // GET single — tous sauf TECHNICIEN
 router.get('/:id', requireAuth, NO_TECH, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const s = data.sejours.find(s => s.id === Number(req.params.id));
     if (!s) return res.status(404).json({ error: 'Non trouvé' });
     res.json(enrich(s, data));
@@ -122,7 +122,7 @@ router.get('/:id', requireAuth, NO_TECH, (req, res) => {
 
 // GET /sejours/:id/solde — détail des paiements (tous sauf TECHNICIEN)
 router.get('/:id/solde', requireAuth, NO_TECH, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const s = data.sejours.find(s => s.id === Number(req.params.id));
     if (!s) return res.status(404).json({ error: 'Non trouvé' });
 
@@ -165,7 +165,7 @@ router.get('/:id/solde', requireAuth, NO_TECH, (req, res) => {
 // PATCH /sejours/:id/caution — mettre à jour la caution
 router.patch('/:id/caution', MGR, (req, res) => {
     const { caution_statut, caution_montant_utilise, caution_notes, caution_date_restitution } = req.body;
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const idx = data.sejours.findIndex(s => s.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
     const s = data.sejours[idx];
@@ -221,7 +221,7 @@ router.post('/', requireAuth, NO_TECH, (req, res) => {
     if (hasHtml(locataire) || hasHtml(req.body.nom_locataire) || hasHtml(req.body.prenom_locataire))
         return res.status(400).json({ error: 'Le nom ne peut pas contenir < ou >' });
 
-    const data = load();
+    const data = scoped(load(), req.orgId);
 
     // Intégrité référentielle : un séjour vers un appartement inexistant rend ses
     // paiements invisibles dans toutes les vues par propriété (caisse, dashboard).
@@ -297,7 +297,7 @@ router.put('/:id', requireAuth, NO_TECH, (req, res) => {
     const parsedMontant = parseFloat(montant);
     if (isNaN(parsedMontant) || parsedMontant <= 0)
         return res.status(400).json({ error: 'Le montant doit être positif' });
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const idx = data.sejours.findIndex(s => s.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
 
@@ -340,7 +340,7 @@ router.put('/:id', requireAuth, NO_TECH, (req, res) => {
 
 // DELETE — PROPRIETAIRE + GESTIONNAIRE seulement
 router.delete('/:id', MGR, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     data.sejours = data.sejours.filter(s => s.id !== Number(req.params.id));
     save(data);
     res.json({ success: true });
@@ -348,7 +348,7 @@ router.delete('/:id', MGR, (req, res) => {
 
 // GET /sejours/:id/facture — données pour la facture
 router.get('/:id/facture', requireAuth, NO_TECH, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const s = data.sejours.find(s => s.id === Number(req.params.id));
     if (!s) return res.status(404).json({ error: 'Non trouvé' });
     const unit = data.units.find(u => u.id === s.unit_id) || {};
@@ -373,7 +373,7 @@ router.get('/:id/facture', requireAuth, NO_TECH, (req, res) => {
 
 // GET /sejours/:id/echeancier — échéancier mensuel pour séjours long terme
 router.get('/:id/echeancier', requireAuth, NO_TECH, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const s = data.sejours.find(s => s.id === Number(req.params.id));
     if (!s) return res.status(404).json({ error: 'Non trouvé' });
 
@@ -483,7 +483,7 @@ router.get('/:id/echeancier', requireAuth, NO_TECH, (req, res) => {
 
 // POST /sejours/:id/resilier — résilier un contrat long terme
 router.post('/:id/resilier', MGR, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const idx = data.sejours.findIndex(s => s.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
     const s = data.sejours[idx];
@@ -499,7 +499,7 @@ router.post('/:id/resilier', MGR, (req, res) => {
 
 // GET quittance de loyer — tous sauf TECHNICIEN
 router.get('/:id/quittance', requireAuth, NO_TECH, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const s = data.sejours.find(s => s.id === Number(req.params.id));
     if (!s) return res.status(404).json({ error: 'Non trouvé' });
     const unit = data.units.find(u => u.id === s.unit_id) || {};
@@ -566,7 +566,7 @@ router.get('/:id/quittance', requireAuth, NO_TECH, (req, res) => {
 
 // POST renouveler un séjour — tous sauf TECHNICIEN
 router.post('/:id/renouveler', requireAuth, NO_TECH, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const s = data.sejours.find(s => s.id === Number(req.params.id));
     if (!s) return res.status(404).json({ error: 'Non trouvé' });
     res.json({

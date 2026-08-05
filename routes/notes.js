@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { load, save, nextId } = require('../store');
+const { load, save, nextId, scoped } = require('../store');
 const { requireAuth } = require('../middleware/auth');
 
 // All routes require auth (notes are visible to everyone)
@@ -8,7 +8,7 @@ const { requireAuth } = require('../middleware/auth');
 // GET — liste des notes (optionnel: filtrer par property_id, unit_id, sejour_id)
 router.get('/', requireAuth, (req, res) => {
     const { property_id, unit_id, sejour_id } = req.query;
-    const data = load();
+    const data = scoped(load(), req.orgId);
     let list = data.notes || [];
     if (property_id) list = list.filter(n => n.property_id === Number(property_id));
     if (unit_id)     list = list.filter(n => n.unit_id === Number(unit_id));
@@ -22,7 +22,7 @@ router.get('/', requireAuth, (req, res) => {
 
 // GET single
 router.get('/:id', requireAuth, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const n = (data.notes || []).find(n => n.id === Number(req.params.id));
     if (!n) return res.status(404).json({ error: 'Note introuvable' });
     res.json(enrich(n, data));
@@ -32,7 +32,7 @@ router.get('/:id', requireAuth, (req, res) => {
 router.post('/', requireAuth, (req, res) => {
     const { content, property_id, unit_id, sejour_id, pinned } = req.body;
     if (!content || !content.trim()) return res.status(400).json({ error: 'Contenu requis' });
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const note = {
         id: nextId(data, 'notes'),
         content: content.trim(),
@@ -54,7 +54,7 @@ router.post('/', requireAuth, (req, res) => {
 
 // PATCH — modifier le contenu ou épingler
 router.patch('/:id', requireAuth, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const idx = (data.notes || []).findIndex(n => n.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Note introuvable' });
     const note = data.notes[idx];
@@ -73,7 +73,7 @@ router.patch('/:id', requireAuth, (req, res) => {
 
 // DELETE
 router.delete('/:id', requireAuth, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const idx = (data.notes || []).findIndex(n => n.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Note introuvable' });
     const note = data.notes[idx];

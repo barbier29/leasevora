@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { load } = require('../store');
+const { load, scoped } = require('../store');
 const { requireAuth } = require('../middleware/auth');
 
 router.get('/', requireAuth, (req, res) => {
     const q = (req.query.q || '').toLowerCase().trim();
     if (q.length < 2) return res.json({ properties: [], units: [], locataires: [], sejours: [] });
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const role = req.user?.role;
 
     // Properties et units : accessibles à tous les rôles (lecture seule)

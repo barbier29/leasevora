@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { load, save } = require('../store');
+const { load, save, scoped } = require('../store');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 // Helper exporté pour que les autres routes puissent logger
@@ -20,7 +20,7 @@ function logActivite(data, user, action, details) {
 module.exports.logActivite = logActivite;
 
 router.get('/', requireRole('PROPRIETAIRE'), (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const limit = parseInt(req.query.limit) || 50;
     res.json((data.activite || []).slice(0, limit));
 });

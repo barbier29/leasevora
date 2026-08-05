@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { load, save } = require('../store');
+const { load, save, allOrgs } = require('../store');
 
 // ── Vérification de paiement par le locataire ──────────────────────────────
 // Route PUBLIQUE (pas d'auth) : le locataire reçoit un lien /v/<token> par
@@ -24,22 +24,30 @@ function rateLimit(req, res, next) {
     next();
 }
 
+// Cherche le paiement dans TOUTES les entreprises (le token est la clé,
+// il est globalement unique) et renvoie aussi le bucket de son entreprise
+// pour résoudre séjour/appartement/locataire dans le bon espace.
 function findByToken(data, token) {
     if (!token || typeof token !== 'string' || !/^[a-f0-9]{32}$/.test(token)) return null;
-    return data.transactions.find(t => t.verif_token === token) || null;
+    for (const { org } of allOrgs(data)) {
+        const t = (org.transactions || []).find(t => t.verif_token === token);
+        if (t) return { t, org };
+    }
+    return null;
 }
 
 // GET /api/verif/:token — détails minimaux du paiement (pas d'IDs internes,
 // pas de données du propriétaire, pas d'autres locataires)
 router.get('/:token', rateLimit, (req, res) => {
     const data = load();
-    const t = findByToken(data, req.params.token);
-    if (!t) return res.status(404).json({ error: 'Lien invalide ou expiré.' });
+    const hit = findByToken(data, req.params.token);
+    if (!hit) return res.status(404).json({ error: 'Lien invalide ou expiré.' });
+    const { t, org } = hit;
 
-    const sejour = data.sejours.find(s => s.id === t.sejour_id) || {};
-    const unit = data.units.find(u => u.id === t.unit_id) || {};
-    const prop = data.properties.find(p => p.id === unit.property_id) || {};
-    const loc = sejour.locataire_id ? data.locataires.find(l => l.id === sejour.locataire_id) : null;
+    const sejour = org.sejours.find(s => s.id === t.sejour_id) || {};
+    const unit = org.units.find(u => u.id === t.unit_id) || {};
+    const prop = org.properties.find(p => p.id === unit.property_id) || {};
+    const loc = sejour.locataire_id ? org.locataires.find(l => l.id === sejour.locataire_id) : null;
 
     res.json({
         montant: t.amount,
@@ -50,7 +58,7 @@ router.get('/:token', rateLimit, (req, res) => {
         propriete: prop.name || null,
         appartement: unit.label || null,
         locataire_prenom: loc ? (loc.prenom || loc.nom) : null,
-        devise: data.settings?.currency || 'XOF',
+        devise: org.settings?.currency || 'XOF',
         statut: t.verif_statut || 'EN_ATTENTE',
         repondu_le: (t.verif_historique || []).filter(h => h.action === 'CONFIRME' || h.action === 'CONTESTE').slice(-1)[0]?.date || null,
     });
@@ -63,8 +71,9 @@ router.post('/:token/repondre', rateLimit, (req, res) => {
         return res.status(400).json({ error: 'action doit être CONFIRMER ou CONTESTER' });
 
     const data = load();
-    const t = findByToken(data, req.params.token);
-    if (!t) return res.status(404).json({ error: 'Lien invalide ou expiré.' });
+    const hit = findByToken(data, req.params.token);
+    if (!hit) return res.status(404).json({ error: 'Lien invalide ou expiré.' });
+    const { t } = hit;
 
     const nouveau = action === 'CONFIRMER' ? 'CONFIRME' : 'CONTESTE';
 

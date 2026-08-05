@@ -1,14 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { load, save, nextId } = require('../store');
+const { load, save, nextId, scoped } = require('../store');
 const { requireRole } = require('../middleware/auth');
 
 const MGR   = requireRole('PROPRIETAIRE', 'GESTIONNAIRE');
 const OWNER = requireRole('PROPRIETAIRE');
+const hasHtml = s => typeof s === 'string' && /[<>]/.test(s);
 
 // GET all properties (with unit count)
 router.get('/', (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const result = data.properties.map(p => ({
         ...p,
         unit_count: data.units.filter(u => u.property_id === p.id).length,
@@ -18,7 +19,7 @@ router.get('/', (req, res) => {
 
 // GET single property with units
 router.get('/:id', (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const id = Number(req.params.id);
     const p = data.properties.find(p => p.id === id);
     if (!p) return res.status(404).json({ error: 'Non trouvé' });
@@ -31,7 +32,7 @@ router.post('/', MGR, (req, res) => {
     if (hasHtml(name)) return res.status(400).json({ error: 'Le nom ne peut pas contenir < ou >' });
     if (!name || !type) return res.status(400).json({ error: 'name et type requis' });
 
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const now = new Date().toISOString();
     const propId = nextId(data, 'properties');
     const prop = {
@@ -59,7 +60,7 @@ router.post('/', MGR, (req, res) => {
 router.put('/:id', MGR, (req, res) => {
     const { name, address, solde_initial_caisse, nb_etages, annee_construction, surface_totale, description } = req.body;
     if (hasHtml(name)) return res.status(400).json({ error: 'Le nom ne peut pas contenir < ou >' });
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const id = Number(req.params.id);
     const idx = data.properties.findIndex(p => p.id === id);
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
@@ -79,7 +80,7 @@ router.put('/:id', MGR, (req, res) => {
 
 // DELETE (PROPRIETAIRE uniquement — action destructive)
 router.delete('/:id', OWNER, (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     const id = Number(req.params.id);
     data.properties = data.properties.filter(p => p.id !== id);
     data.units = data.units.filter(u => u.property_id !== id);

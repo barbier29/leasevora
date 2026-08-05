@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { load } = require('../store');
+const { load, scoped } = require('../store');
 const { requireRole } = require('../middleware/auth');
 
 const MGR = requireRole('PROPRIETAIRE');
@@ -11,7 +11,7 @@ const MGR = requireRole('PROPRIETAIRE');
  */
 router.get('/income-statement', MGR, (req, res) => {
     const { property_id, unit_id, date_from, date_to } = req.query;
-    const data = load();
+    const data = scoped(load(), req.orgId);
 
     const now  = new Date();
     const from = date_from || `${now.getFullYear()}-01-01`;
@@ -93,7 +93,7 @@ router.get('/income-statement', MGR, (req, res) => {
  */
 router.get('/property-report', MGR, (req, res) => {
     const { date_from, date_to } = req.query;
-    const data = load();
+    const data = scoped(load(), req.orgId);
 
     const now  = new Date();
     const from = date_from || `${now.getFullYear()}-01-01`;

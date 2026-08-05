@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { load, save } = require('../store');
+const { load, save, scoped } = require('../store');
 const { requireRole } = require('../middleware/auth');
 
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'CAD', 'AED', 'XOF', 'XAF', 'MAD', 'TND', 'DZD', 'NGN', 'GHS', 'KES', 'ZAR', 'GNF', 'JPY', 'BRL', 'MXN', 'XPF'];
@@ -8,7 +8,7 @@ const LANGUAGES  = ['fr', 'en'];
 
 // GET settings — tous les utilisateurs authentifiés (nécessaire pour le boot de l'app : devise, langue)
 router.get('/', (req, res) => {
-    const data = load();
+    const data = scoped(load(), req.orgId);
     res.json(data.settings);
 });
 
@@ -19,7 +19,7 @@ router.put('/', requireRole('PROPRIETAIRE'), (req, res) => {
         return res.status(400).json({ error: `Devise invalide. Valeurs acceptées : ${CURRENCIES.join(', ')}` });
     if (language && !LANGUAGES.includes(language))
         return res.status(400).json({ error: 'Langue invalide. Valeurs acceptées : fr, en' });
-    const data = load();
+    const data = scoped(load(), req.orgId);
     data.settings = { ...data.settings, ...req.body };
     save(data);
     res.json(data.settings);
