@@ -120,6 +120,11 @@ function renderPaiementsPage(container) {
         <div class="stat-label">🟡 Séjours partiels</div>
         <div class="stat-value">${s.nb_sejours_partiels}</div>
       </div>
+      <div class="stat-card" title="Paiements enregistrés par le gérant mais pas encore confirmés par le locataire. Renvoyez le lien du reçu (📲 dans le détail du séjour) pour faire baisser ce chiffre.">
+        <div class="stat-label">🔏 Non confirmés</div>
+        <div class="stat-value ${(s.nb_paiements_non_confirmes || 0) > 0 ? '' : 'green'}">${s.nb_paiements_non_confirmes ?? 0}</div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:2px">attestés par une seule partie</div>
+      </div>
     </div>`;
   }
 

@@ -128,6 +128,11 @@ router.get('/suivi', MGR, (req, res) => {
     // enregistré) : une contestation ne doit jamais passer inaperçue.
     const nb_paiements_contestes = (data.transactions || [])
         .filter(t => t.verif_statut === 'CONTESTE').length;
+    // Paiements en attente de confirmation par le locataire — pas une alerte,
+    // mais un indicateur de couverture : combien de paiements ne sont attestés
+    // que par une seule partie.
+    const nb_paiements_non_confirmes = (data.transactions || [])
+        .filter(t => t.verif_statut === 'EN_ATTENTE').length;
 
     const summary = {
         total_a_encaisser,
@@ -136,6 +141,7 @@ router.get('/suivi', MGR, (req, res) => {
         nb_sejours_partiels,
         nb_sejours_soldes,
         nb_paiements_contestes,
+        nb_paiements_non_confirmes,
     };
 
     // Apply filters
