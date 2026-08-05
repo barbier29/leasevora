@@ -415,13 +415,66 @@ function renderPaiementsPage(container) {
   }
 
   // ── Reload & re-render ────────────────────────────────────────────────────
+  let _decl = null; // déclarations de paiement faites par les locataires
   async function reloadAndRender() {
     try {
       _data = await fetchData();
     } catch (err) {
       window.toast('Erreur chargement : ' + (err.message || ''), 'error');
     }
+    try {
+      _decl = await window.api('/declarations');
+    } catch { _decl = null; } // AGENT n'a pas accès — la section est simplement absente
     renderPage();
+  }
+
+  // ── Déclarations locataires (paiements signalés non enregistrés) ─────────
+  function renderDeclarations() {
+    if (!_decl || !_decl.declarations?.length) return '';
+    const pending = _decl.declarations.filter(d => d.statut === 'EN_ATTENTE');
+    const rejected = _decl.declarations.filter(d => d.statut === 'REJETEE');
+    if (!pending.length && !rejected.length) return '';
+
+    const row = d => `
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+        <div>
+          <div style="font-size:13px;font-weight:600">${escHtml(d.locataire_nom)} — ${escHtml(d.property_name)} · ${escHtml(d.unit_label)}</div>
+          <div style="font-size:12px;color:var(--text-3)">
+            ${window.fmtDate(d.date)} · ${window.MODES_PAIEMENT_LABELS[d.mode_paiement] || 'mode non précisé'}
+            ${d.reference_paiement ? ' · réf. ' + escHtml(d.reference_paiement) : ''}
+            ${d.commentaire ? ' · « ' + escHtml(d.commentaire) + ' »' : ''}
+          </div>
+          ${d.statut === 'REJETEE' ? `<div style="font-size:12px;color:var(--red)">Rejeté : ${escHtml(d.motif_rejet || '')}</div>` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-weight:700;font-size:15px">${window.fmtMoney(d.montant)}</span>
+          ${d.statut === 'EN_ATTENTE' ? `
+            <button class="btn btn-primary btn-sm decl-valider" data-id="${d.id}">✓ Valider</button>
+            <button class="btn btn-ghost btn-sm decl-rejeter" data-id="${d.id}" style="color:var(--red)">✗ Rejeter</button>` : ''}
+        </div>
+      </div>`;
+
+    return `
+    <div class="card" style="margin-bottom:20px;padding:18px;border:1px solid ${pending.length ? 'rgba(245,158,11,0.5)' : 'var(--border)'}">
+      <div style="font-weight:700;margin-bottom:4px">📣 Paiements signalés par les locataires${pending.length ? ` — ${pending.length} à traiter` : ''}</div>
+      <div style="font-size:12.5px;color:var(--text-3);margin-bottom:10px">Un locataire affirme avoir payé un montant qui n'apparaît pas dans les comptes. Validez pour l'enregistrer, ou rejetez avec un motif (conservé et visible).</div>
+      ${pending.map(row).join('')}
+      ${rejected.slice(0, 5).map(row).join('')}
+    </div>`;
+  }
+
+  function bindDeclarations() {
+    container.querySelectorAll('.decl-valider').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm('Valider ce paiement ? Il sera enregistré dans les comptes comme confirmé par le locataire.')) return;
+      try { await window.api(`/declarations/${b.dataset.id}/valider`, { method: 'POST' }); window.toast('Paiement enregistré ✓'); reloadAndRender(); }
+      catch (e) { window.toast(e.message, 'error'); }
+    }));
+    container.querySelectorAll('.decl-rejeter').forEach(b => b.addEventListener('click', async () => {
+      const motif = prompt('Motif du rejet (obligatoire — visible du propriétaire et du locataire) :');
+      if (!motif || !motif.trim()) return;
+      try { await window.api(`/declarations/${b.dataset.id}/rejeter`, { method: 'POST', body: { motif } }); window.toast('Déclaration rejetée'); reloadAndRender(); }
+      catch (e) { window.toast(e.message, 'error'); }
+    }));
   }
 
   // ── Full page render ──────────────────────────────────────────────────────
@@ -454,6 +507,8 @@ function renderPaiementsPage(container) {
 
       ${renderKpis(s)}
 
+      ${renderDeclarations()}
+
       <div class="card" style="padding:20px">
         <div class="suivi-filters">
           <div class="suivi-tabs">${tabsHtml}</div>
@@ -468,6 +523,9 @@ function renderPaiementsPage(container) {
         </div>
       </div>
     `;
+
+    // ── Bind déclarations locataires ──
+    bindDeclarations();
 
     // ── Bind tab buttons ──
     container.querySelectorAll('.suivi-tab').forEach(btn => {
@@ -592,8 +650,11 @@ function renderPaiementsPage(container) {
     <div class="skeleton skeleton-table"></div>
   </div>`;
 
-  fetchData()
-    .then(data => { _data = data; renderPage(); })
+  Promise.all([
+    fetchData(),
+    window.api('/declarations').catch(() => null), // AGENT n'y a pas accès — section absente
+  ])
+    .then(([data, decl]) => { _data = data; _decl = decl; renderPage(); })
     .catch(err  => {
       container.innerHTML = `<div class="empty-state" style="padding:80px 20px">
         <div style="font-size:40px;margin-bottom:12px">⚠️</div>

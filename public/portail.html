@@ -37,6 +37,19 @@
   .b-wait{ background:#f8fafc; color:#64748b; }
   a.recu { font-size:12px; color:#2563eb; text-decoration:none; white-space:nowrap; }
   .caution { font-size:13px; color:#64748b; padding-top:12px; border-top:1px solid #f1f5f9; margin-top:4px; }
+  .btn-declare { width:100%; margin-top:14px; border:1.5px dashed #cbd5e1; background:#f8fafc;
+                 color:#475569; border-radius:10px; padding:12px; font-size:14px; font-weight:600; cursor:pointer; }
+  .btn-declare:active { background:#eef2f7; }
+  .decl-form { display:none; margin-top:12px; padding:14px; background:#f8fafc; border-radius:12px; }
+  .decl-form label { font-size:11.5px; color:#64748b; display:block; margin:10px 0 4px; font-weight:600; }
+  .decl-form input, .decl-form select { width:100%; border:1.5px solid #e2e8f0; border-radius:8px;
+                 padding:10px; font-size:15px; font-family:inherit; background:#fff; }
+  .decl-form .send { margin-top:14px; width:100%; border:none; background:#2563eb; color:#fff;
+                 border-radius:10px; padding:13px; font-size:15px; font-weight:700; cursor:pointer; }
+  .decl { display:flex; justify-content:space-between; align-items:center; gap:8px;
+          padding:10px 0; border-bottom:1px solid #f1f5f9; }
+  .decl:last-child { border-bottom:none; }
+  .decl .motif { font-size:11.5px; color:#b91c1c; margin-top:2px; }
   .loading, .error { text-align:center; padding:48px 12px; color:#64748b; font-size:15px; }
   .error { color:#b91c1c; display:none; }
   .note { font-size:12.5px; color:#94a3b8; margin:20px 0 32px; text-align:center; line-height:1.55; }
@@ -122,8 +135,78 @@
             ${p.verif_token ? `<a class="recu" href="/v/${p.verif_token}">Reçu →</a>` : ''}
           </div>
         </div>`).join('') : '<div class="m" style="font-size:13px;color:#94a3b8;font-style:italic">Aucun paiement enregistré pour le moment.</div>'}
+      ${(s.declarations || []).length ? `
+        <div class="ptitle" style="margin-top:16px">Mes signalements</div>
+        ${s.declarations.map(dc => `
+          <div class="decl">
+            <div>
+              <div class="d" style="font-size:13px;color:#475569">${fmtDate(dc.date)}${dc.mode_paiement ? ' · ' + (MODES[dc.mode_paiement] || '') : ''}</div>
+              ${dc.statut === 'REJETEE' && dc.motif_rejet ? `<div class="motif">Motif : ${esc(dc.motif_rejet)}</div>` : ''}
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="a" style="font-weight:700;font-size:14px">${fmtMoney(dc.montant)}</span>
+              ${dc.statut === 'EN_ATTENTE' ? '<span class="badge b-wait">⏳ En attente</span>'
+                : dc.statut === 'VALIDEE' ? '<span class="badge b-ok">✓ Validé</span>'
+                : '<span class="badge b-ko">✗ Rejeté</span>'}
+            </div>
+          </div>`).join('')}` : ''}
+      <button class="btn-declare" data-sejour="${s.sejour_id}">➕ J'ai payé mais ce n'est pas affiché — signaler un paiement</button>
+      <div class="decl-form" id="form-${s.sejour_id}">
+        <label>Montant payé (${esc(devise === 'XOF' || devise === 'XAF' ? 'FCFA' : devise)}) *</label>
+        <input type="number" min="1" id="dm-${s.sejour_id}" placeholder="Ex : 20000" />
+        <label>Date du paiement *</label>
+        <input type="date" id="dd-${s.sejour_id}" />
+        <label>Comment avez-vous payé ?</label>
+        <select id="dp-${s.sejour_id}">
+          <option value="ESPECES">Espèces</option>
+          <option value="TMONEY">T-Money</option>
+          <option value="FLOOZ">Flooz</option>
+          <option value="VIREMENT">Virement</option>
+          <option value="CARTE">Carte</option>
+          <option value="AUTRE">Autre</option>
+        </select>
+        <label>Référence de la transaction (SMS T-Money/Flooz) — fortement conseillé</label>
+        <input type="text" id="dr-${s.sejour_id}" placeholder="Ex : TM240805.1234.A56789" />
+        <label>Précision (à qui, où…)</label>
+        <input type="text" id="dc-${s.sejour_id}" placeholder="Ex : remis en espèces au gérant le matin" />
+        <button class="send" data-send="${s.sejour_id}">Envoyer au propriétaire</button>
+      </div>
       ${CAUTIONS[s.caution_statut] ? `<div class="caution">🛡 ${CAUTIONS[s.caution_statut]}${s.caution_montant ? ' — ' + fmtMoney(s.caution_montant) : ''}</div>` : ''}
     </div>`).join('') || '<div class="card">Aucune location active.</div>';
+
+  // Ouvrir le formulaire de signalement
+  document.querySelectorAll('.btn-declare').forEach(b => b.addEventListener('click', () => {
+    const f = document.getElementById('form-' + b.dataset.sejour);
+    f.style.display = f.style.display === 'block' ? 'none' : 'block';
+    if (f.style.display === 'block') document.getElementById('dd-' + b.dataset.sejour).value = new Date().toISOString().slice(0, 10);
+  }));
+
+  // Envoyer la déclaration
+  document.querySelectorAll('[data-send]').forEach(b => b.addEventListener('click', async () => {
+    const id = b.dataset.send;
+    const montant = parseFloat(document.getElementById('dm-' + id).value);
+    const date = document.getElementById('dd-' + id).value;
+    if (!montant || montant <= 0) { alert('Indiquez le montant payé.'); return; }
+    if (!date) { alert('Indiquez la date du paiement.'); return; }
+    b.disabled = true;
+    try {
+      const r = await fetch('/api/portail/' + token + '/declarer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sejour_id: Number(id),
+          montant, date,
+          mode_paiement: document.getElementById('dp-' + id).value,
+          reference_paiement: document.getElementById('dr-' + id).value,
+          commentaire: document.getElementById('dc-' + id).value,
+        })
+      });
+      const j = await r.json();
+      if (!r.ok) { alert(j.error || 'Erreur'); b.disabled = false; return; }
+      alert('✓ Votre signalement a été envoyé au propriétaire.');
+      location.reload();
+    } catch (e) { alert('Erreur réseau'); b.disabled = false; }
+  }));
 })();
 </script>
 </body>

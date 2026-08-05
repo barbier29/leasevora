@@ -1,4 +1,4 @@
-const CACHE_NAME = 'leasevora-v12';
+const CACHE_NAME = 'leasevora-v13';
 
 const STATIC_ASSETS = [
   '/',
@@ -12,10 +12,13 @@ const STATIC_ASSETS = [
   '/pages/calendrier.js',
   '/pages/transactions.js',
   '/pages/caisse.js',
+  '/pages/comptes.js',
   '/pages/finance.js',
+  '/pages/paiements.js',
   '/pages/travaux.js',
   '/pages/compteurs.js',
   '/pages/categories.js',
+  '/pages/notes.js',
   '/pages/users.js',
 ];
 

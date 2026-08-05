@@ -155,13 +155,14 @@ const DEFAULT = {
     notes: [],
     activite: [],
     invitations: [],
+    declarations: [], // paiements déclarés par les locataires depuis leur portail
 };
 
 function load() {
     if (!fs.existsSync(FILE)) return JSON.parse(JSON.stringify(DEFAULT));
     try {
         const data = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-        for (const k of ['sejours', 'locataires', 'travaux', 'compteurs', 'users', 'notes', 'activite', 'invitations']) {
+        for (const k of ['sejours', 'locataires', 'travaux', 'compteurs', 'users', 'notes', 'activite', 'invitations', 'declarations']) {
             if (!data[k]) data[k] = [];
         }
         if (!data.settings) data.settings = { currency: 'EUR', language: 'fr' };
