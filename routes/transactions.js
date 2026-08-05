@@ -1,7 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const { load, save, nextId } = require('../store');
 const { requireRole } = require('../middleware/auth');
+
+// Modes de paiement acceptés (Togo : T-Money = Togocom/Yas, Flooz = Moov)
+const MODES_PAIEMENT = ['ESPECES', 'TMONEY', 'FLOOZ', 'VIREMENT', 'CARTE', 'CHEQUE', 'AUTRE'];
 
 // Transactions financières — PROPRIETAIRE, GESTIONNAIRE, AGENT
 const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT');
@@ -42,13 +46,15 @@ router.get('/:id', MGR, (req, res) => {
 });
 
 router.post('/', MGR, (req, res) => {
-    const { date, description, kind, amount, category_id, property_id, unit_id, source, sejour_id, compte_id } = req.body;
+    const { date, description, kind, amount, category_id, property_id, unit_id, source, sejour_id, compte_id, mode_paiement, reference_paiement } = req.body;
     if (!date || !kind || !amount)
         return res.status(400).json({ error: 'date, kind, amount requis' });
     if (isNaN(Date.parse(date)))
         return res.status(400).json({ error: 'Date invalide' });
     if (!['IN', 'OUT'].includes(kind))
         return res.status(400).json({ error: 'kind doit être IN ou OUT' });
+    if (mode_paiement && !MODES_PAIEMENT.includes(mode_paiement))
+        return res.status(400).json({ error: `Mode de paiement invalide. Valeurs : ${MODES_PAIEMENT.join(', ')}` });
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0)
         return res.status(400).json({ error: 'Le montant doit être un nombre positif' });
@@ -88,25 +94,54 @@ router.post('/', MGR, (req, res) => {
             const c = (data.comptes || []).find(c => c.id === (compte_id ? Number(compte_id) : 1));
             return c?.type || 'CAISSE';
         })(),
+        mode_paiement: mode_paiement || null,
+        reference_paiement: reference_paiement || null,
         created_at: new Date().toISOString(),
     };
+    // Vérification locataire : chaque paiement de loyer reçoit un lien public
+    // que le locataire peut ouvrir pour confirmer ou contester le montant déclaré.
+    if (txn.kind === 'IN' && txn.sejour_id) {
+        txn.verif_token = crypto.randomBytes(16).toString('hex');
+        txn.verif_statut = 'EN_ATTENTE';
+        txn.verif_historique = [];
+    }
     data.transactions.push(txn);
     save(data);
     res.status(201).json(enrich(txn, data));
 });
 
 router.put('/:id', MGR, (req, res) => {
-    const { date, description, kind, amount, category_id, property_id, unit_id, source, sejour_id, compte_id } = req.body;
+    const { date, description, kind, amount, category_id, property_id, unit_id, source, sejour_id, compte_id, mode_paiement, reference_paiement } = req.body;
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0)
         return res.status(400).json({ error: 'Le montant doit être positif' });
+    if (mode_paiement && !MODES_PAIEMENT.includes(mode_paiement))
+        return res.status(400).json({ error: `Mode de paiement invalide. Valeurs : ${MODES_PAIEMENT.join(', ')}` });
     const data = load();
     const idx = data.transactions.findIndex(t => t.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
+
+    // Intégrité : modifier le montant d'un paiement déjà confirmé par le locataire
+    // invalide sa confirmation — retour à EN_ATTENTE, avec trace de l'ancien montant.
+    const prev = data.transactions[idx];
+    if (prev.verif_token && prev.verif_statut === 'CONFIRME' && Number(amount) !== prev.amount) {
+        prev.verif_statut = 'EN_ATTENTE';
+        prev.verif_historique = prev.verif_historique || [];
+        prev.verif_historique.push({
+            action: 'MONTANT_MODIFIE_APRES_CONFIRMATION',
+            ancien_montant: prev.amount,
+            nouveau_montant: Number(amount),
+            par: req.user?.login || '?',
+            date: new Date().toISOString(),
+        });
+    }
+
     data.transactions[idx] = {
         ...data.transactions[idx],
         date, description: description || null, kind,
         amount: Number(amount),
+        mode_paiement: mode_paiement !== undefined ? (mode_paiement || null) : (prev.mode_paiement || null),
+        reference_paiement: reference_paiement !== undefined ? (reference_paiement || null) : (prev.reference_paiement || null),
         category_id: Number(category_id),
         property_id: Number(property_id),
         unit_id: unit_id ? Number(unit_id) : null,

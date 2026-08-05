@@ -61,7 +61,13 @@ router.get('/suivi', MGR, (req, res) => {
             const paiementsList = (data.transactions || [])
                 .filter(t => t.sejour_id === s.id && t.kind === 'IN')
                 .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
-                .map(t => ({ id: t.id, date: t.date, amount: t.amount, description: t.description || null }));
+                .map(t => ({
+                    id: t.id, date: t.date, amount: t.amount, description: t.description || null,
+                    mode_paiement: t.mode_paiement || null,
+                    reference_paiement: t.reference_paiement || null,
+                    verif_statut: t.verif_statut || null,
+                    verif_token: t.verif_token || null,
+                }));
 
             enrichedSejours.push({
                 id: s.id,
@@ -117,12 +123,19 @@ router.get('/suivi', MGR, (req, res) => {
     const total_a_encaisser     = clientRows.reduce((sum, c) => sum + c.solde, 0);
     const nb_clients_debiteurs  = clientRows.filter(c => c.solde > 0.01).length;
 
+    // Paiements contestés par un locataire — signal prioritaire pour le propriétaire.
+    // Calculé sur TOUTES les transactions (pas seulement celles liées à un locataire
+    // enregistré) : une contestation ne doit jamais passer inaperçue.
+    const nb_paiements_contestes = (data.transactions || [])
+        .filter(t => t.verif_statut === 'CONTESTE').length;
+
     const summary = {
         total_a_encaisser,
         nb_clients_debiteurs,
         nb_sejours_en_attente,
         nb_sejours_partiels,
         nb_sejours_soldes,
+        nb_paiements_contestes,
     };
 
     // Apply filters

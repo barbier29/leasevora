@@ -35,6 +35,18 @@ app.use((_req, res, next) => {
 // Public routes (no auth required)
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/invite', require('./routes/invite')); // gère son propre auth en interne
+app.use('/api/verif', require('./routes/verif'));     // vérification locataire — public par design (token = clé)
+app.use('/api/portail', require('./routes/portail')); // portail locataire — public par design (token = clé)
+
+// Page publique de vérification d'un paiement (lien envoyé au locataire)
+app.get('/v/:token', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'verif.html'));
+});
+
+// Portail locataire (lien permanent envoyé au locataire)
+app.get('/l/:token', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'portail.html'));
+});
 
 // All other /api routes require authentication
 app.use('/api', requireAuth);
@@ -127,7 +139,7 @@ if (!process.env.JWT_SECRET) {
     console.warn('⚠️  JWT_SECRET non défini dans .env — utilisation de la clé par défaut (non sécurisé en production)');
 }
 
-const { syncFromSupabase } = require('./store');
+const { syncFromSupabase, migrateVerifTokens } = require('./store');
 
 app.listen(PORT, async () => {
     // 1. Restaurer les données depuis Supabase EN PREMIER
@@ -136,5 +148,7 @@ app.listen(PORT, async () => {
     seedAdmin();
     // 3. Toujours s'assurer que le compte démo existe
     seedDemo();
+    // 4. Doter les anciens paiements d'un token de vérification (une fois)
+    migrateVerifTokens();
     console.log(`\n🏢  Leasevora disponible sur http://localhost:${PORT}\n`);
 });

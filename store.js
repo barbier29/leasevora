@@ -242,6 +242,14 @@ function load() {
             }
         });
 
+        // Migration mode de paiement + vérification locataire
+        // NB : les verif_token des anciennes transactions sont générés UNE FOIS
+        // au démarrage (migrateVerifTokens) — jamais ici, car load() ne sauvegarde pas.
+        data.transactions.forEach(t => {
+            if (!('mode_paiement'      in t)) t.mode_paiement      = null;
+            if (!('reference_paiement' in t)) t.reference_paiement = null;
+        });
+
         // Migration spécifications unités
         data.units.forEach(u => {
             if (!('type'           in u)) u.type           = 'APPARTEMENT';
@@ -329,4 +337,33 @@ function nextId(data, table) {
     return data._seq[table];
 }
 
-module.exports = { load, save, nextId, syncFromSupabase };
+// ── Migration ponctuelle : tokens de vérification ──────────────────────────
+// Appelée UNE FOIS au démarrage (après syncFromSupabase). Génère un token
+// pour chaque paiement de loyer existant qui n'en a pas, puis sauvegarde.
+// Les nouveaux paiements reçoivent leur token à la création (routes/transactions.js).
+function migrateVerifTokens() {
+    const crypto = require('crypto');
+    const data = load();
+    let changed = 0;
+    (data.transactions || []).forEach(t => {
+        if (t.kind === 'IN' && t.sejour_id && !t.verif_token) {
+            t.verif_token = crypto.randomBytes(16).toString('hex');
+            t.verif_statut = 'EN_ATTENTE';
+            t.verif_historique = [];
+            changed++;
+        }
+    });
+    // Portail locataire : chaque locataire reçoit un token d'accès permanent
+    (data.locataires || []).forEach(l => {
+        if (!l.portal_token) {
+            l.portal_token = crypto.randomBytes(16).toString('hex');
+            changed++;
+        }
+    });
+    if (changed > 0) {
+        save(data);
+        console.log(`✅ Migration vérification/portail : ${changed} token(s) généré(s)`);
+    }
+}
+
+module.exports = { load, save, nextId, syncFromSupabase, migrateVerifTokens };

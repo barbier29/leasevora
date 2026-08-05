@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mon espace locataire — Leasevora</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+         background:#f4f6f9; color:#1a202c; min-height:100vh; padding:16px; }
+  .wrap { max-width:480px; margin:0 auto; }
+  .brand { font-size:13px; font-weight:700; letter-spacing:.08em; color:#64748b;
+           text-transform:uppercase; margin:8px 0 18px; }
+  h1 { font-size:22px; margin-bottom:2px; }
+  .sub { font-size:14px; color:#64748b; margin-bottom:20px; }
+  .card { background:#fff; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,.06);
+          padding:20px; margin-bottom:16px; }
+  .logement { font-size:16px; font-weight:700; margin-bottom:2px; }
+  .periode { font-size:13px; color:#64748b; margin-bottom:14px; }
+  .stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:16px; }
+  .stat { background:#f8fafc; border-radius:10px; padding:10px 8px; text-align:center; }
+  .stat .v { font-size:15px; font-weight:800; }
+  .stat .k { font-size:10.5px; color:#64748b; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+  .solde-ok  { color:#16a34a; }
+  .solde-due { color:#dc2626; }
+  .ptitle { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+            color:#94a3b8; margin-bottom:8px; }
+  .pay { display:flex; justify-content:space-between; align-items:center;
+         padding:11px 0; border-bottom:1px solid #f1f5f9; gap:8px; }
+  .pay:last-child { border-bottom:none; }
+  .pay .d { font-size:13px; color:#475569; }
+  .pay .m { font-size:12px; color:#94a3b8; }
+  .pay .a { font-weight:700; font-size:14.5px; white-space:nowrap; }
+  .badge { font-size:11px; font-weight:700; padding:3px 8px; border-radius:99px; white-space:nowrap; }
+  .b-ok  { background:#f0fdf4; color:#15803d; }
+  .b-ko  { background:#fef2f2; color:#b91c1c; }
+  .b-wait{ background:#f8fafc; color:#64748b; }
+  a.recu { font-size:12px; color:#2563eb; text-decoration:none; white-space:nowrap; }
+  .caution { font-size:13px; color:#64748b; padding-top:12px; border-top:1px solid #f1f5f9; margin-top:4px; }
+  .loading, .error { text-align:center; padding:48px 12px; color:#64748b; font-size:15px; }
+  .error { color:#b91c1c; display:none; }
+  .note { font-size:12.5px; color:#94a3b8; margin:20px 0 32px; text-align:center; line-height:1.55; }
+  #content { display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">Leasevora · Espace locataire</div>
+  <div class="loading" id="loading">Chargement…</div>
+  <div class="error" id="error"></div>
+
+  <div id="content">
+    <h1 id="name"></h1>
+    <p class="sub">Votre historique de loyers et vos reçus. Conservez ce lien : c'est votre preuve de paiement.</p>
+    <div id="sejours"></div>
+    <p class="note">Un montant affiché ne correspond pas à ce que vous avez payé ?<br>
+    Ouvrez le reçu concerné et contestez-le — le propriétaire en sera informé.</p>
+  </div>
+</div>
+
+<script>
+(async function () {
+  const token = location.pathname.split('/').pop();
+  const $ = id => document.getElementById(id);
+
+  const MODES = { ESPECES:'Espèces', TMONEY:'T-Money', FLOOZ:'Flooz', VIREMENT:'Virement', CARTE:'Carte', CHEQUE:'Chèque', AUTRE:'Autre' };
+  const CAUTIONS = { AUCUNE:null, EN_ATTENTE:'Caution : en attente de versement', PAYEE:'Caution versée', PARTIELLEMENT_UTILISEE:'Caution partiellement utilisée', RESTITUEE:'Caution restituée', CONSERVEE:'Caution conservée' };
+  const CURR = { XOF:{s:'FCFA',after:true,dec:0}, XAF:{s:'FCFA',after:true,dec:0}, EUR:{s:'€',after:true,dec:2}, USD:{s:'$',after:false,dec:2} };
+
+  let devise = 'XOF';
+  function fmtMoney(n) {
+    const c = CURR[devise] || { s: devise, after: true, dec: 2 };
+    const v = Number(n).toLocaleString('fr-FR', { minimumFractionDigits: c.dec, maximumFractionDigits: c.dec });
+    return c.after ? v + ' ' + c.s : c.s + v;
+  }
+  const fmtDate = d => d ? new Date(d).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' }) : '—';
+
+  let d;
+  try {
+    const r = await fetch('/api/portail/' + token);
+    if (!r.ok) throw new Error((await r.json()).error || 'Erreur');
+    d = await r.json();
+  } catch (e) {
+    $('loading').style.display = 'none';
+    $('error').textContent = e.message || 'Lien invalide.';
+    $('error').style.display = 'block';
+    return;
+  }
+
+  devise = d.devise || 'XOF';
+  $('loading').style.display = 'none';
+  $('content').style.display = 'block';
+  $('name').textContent = 'Bonjour ' + (d.prenom || d.nom) + ' 👋';
+
+  const BADGES = {
+    CONFIRME: '<span class="badge b-ok">✓ Confirmé</span>',
+    CONTESTE: '<span class="badge b-ko">⚠ Contesté</span>',
+    EN_ATTENTE: '<span class="badge b-wait">À vérifier</span>',
+  };
+
+  $('sejours').innerHTML = (d.sejours || []).map(s => `
+    <div class="card">
+      <div class="logement">🏠 ${[s.propriete, s.appartement].filter(Boolean).join(' · ')}</div>
+      <div class="periode">Depuis le ${fmtDate(s.date_debut)}${s.date_fin ? ' → ' + fmtDate(s.date_fin) : ''}${s.loyer_mensuel ? ' · ' + fmtMoney(s.loyer_mensuel) + '/mois' : ''}${s.jour_paiement ? ' · payable le ' + s.jour_paiement : ''}</div>
+      <div class="stats">
+        <div class="stat"><div class="v">${fmtMoney(s.total_du)}</div><div class="k">Total dû</div></div>
+        <div class="stat"><div class="v solde-ok">${fmtMoney(s.total_paye)}</div><div class="k">Payé</div></div>
+        <div class="stat"><div class="v ${s.solde_restant > 0 ? 'solde-due' : 'solde-ok'}">${fmtMoney(s.solde_restant)}</div><div class="k">Restant</div></div>
+      </div>
+      <div class="ptitle">Mes paiements</div>
+      ${s.paiements.length ? s.paiements.map(p => `
+        <div class="pay">
+          <div>
+            <div class="d">${fmtDate(p.date)}</div>
+            <div class="m">${MODES[p.mode_paiement] || ''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="a">${fmtMoney(p.montant)}</span>
+            ${p.verif_token ? (BADGES[p.verif_statut] || BADGES.EN_ATTENTE) : ''}
+            ${p.verif_token ? `<a class="recu" href="/v/${p.verif_token}">Reçu →</a>` : ''}
+          </div>
+        </div>`).join('') : '<div class="m" style="font-size:13px;color:#94a3b8;font-style:italic">Aucun paiement enregistré pour le moment.</div>'}
+      ${CAUTIONS[s.caution_statut] ? `<div class="caution">🛡 ${CAUTIONS[s.caution_statut]}${s.caution_montant ? ' — ' + fmtMoney(s.caution_montant) : ''}</div>` : ''}
+    </div>`).join('') || '<div class="card">Aucune location active.</div>';
+})();
+</script>
+</body>
+</html>

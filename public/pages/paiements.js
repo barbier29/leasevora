@@ -3,7 +3,7 @@
 function renderPaiementsPage(container) {
   // ── Local state ──────────────────────────────────────────────────────────
   let _data = null;          // full API response
-  let _tab  = 'debiteurs';   // active tab key
+  let _tab  = 'tous';   // active tab key — 'tous' par défaut : une alerte (paiement contesté) doit toujours être visible dans la liste
   let _search = '';          // search string
   let _expanded = new Set(); // expanded client ids
 
@@ -95,34 +95,30 @@ function renderPaiementsPage(container) {
   function renderKpis(s) {
     if (!s) return '';
     return `
-    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
-      <div class="stat-card" style="border-color:rgba(244,63,94,0.25)">
-        <div class="stat-icon" style="background:rgba(244,63,94,0.12)">💰</div>
-        <div class="stat-info">
-          <div class="stat-value" style="color:var(--red)">${window.fmtMoney(s.total_a_encaisser)}</div>
-          <div class="stat-label">Total à encaisser</div>
-        </div>
+    ${s.nb_paiements_contestes > 0 ? `
+    <div style="background:rgba(244,63,94,0.10);border:1px solid rgba(244,63,94,0.4);border-radius:var(--radius);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:22px">⚠️</span>
+      <div>
+        <div style="font-weight:700;color:var(--red)">${s.nb_paiements_contestes} paiement${s.nb_paiements_contestes > 1 ? 's' : ''} contesté${s.nb_paiements_contestes > 1 ? 's' : ''} par un locataire</div>
+        <div style="font-size:12.5px;color:var(--text-2)">Un locataire affirme que le montant enregistré ne correspond pas à ce qu'il a réellement payé. Vérifiez ci-dessous (badge ⚠) et corrigez le paiement concerné.</div>
+      </div>
+    </div>` : ''}
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">💰 Total à encaisser</div>
+        <div class="stat-value red">${window.fmtMoney(s.total_a_encaisser)}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background:rgba(244,63,94,0.10)">🔴</div>
-        <div class="stat-info">
-          <div class="stat-value">${s.nb_clients_debiteurs}</div>
-          <div class="stat-label">Clients débiteurs</div>
-        </div>
+        <div class="stat-label">🔴 Clients débiteurs</div>
+        <div class="stat-value">${s.nb_clients_debiteurs}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background:rgba(245,158,11,0.10)">⏳</div>
-        <div class="stat-info">
-          <div class="stat-value">${s.nb_sejours_en_attente}</div>
-          <div class="stat-label">Séjours en attente</div>
-        </div>
+        <div class="stat-label">⏳ Séjours en attente</div>
+        <div class="stat-value">${s.nb_sejours_en_attente}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-icon" style="background:rgba(245,158,11,0.10)">🟡</div>
-        <div class="stat-info">
-          <div class="stat-value">${s.nb_sejours_partiels}</div>
-          <div class="stat-label">Séjours partiels</div>
-        </div>
+        <div class="stat-label">🟡 Séjours partiels</div>
+        <div class="stat-value">${s.nb_sejours_partiels}</div>
       </div>
     </div>`;
   }
@@ -137,7 +133,11 @@ function renderPaiementsPage(container) {
           <div class="mini-pmt">
             <span style="color:var(--text-3);min-width:88px">${window.fmtDate(p.date)}</span>
             <span style="color:var(--green);font-weight:600">${window.fmtMoney(p.amount)}</span>
+            ${p.mode_paiement ? `<span style="color:var(--text-3);font-size:11px">${window.MODES_PAIEMENT_LABELS[p.mode_paiement] || p.mode_paiement}</span>` : ''}
             <span>${escHtml(p.description || '')}</span>
+            ${p.verif_statut === 'CONTESTE' ? '<span style="color:var(--red);font-weight:700">⚠ Contesté</span>'
+              : p.verif_statut === 'CONFIRME' ? '<span style="color:var(--green)">✓ Confirmé</span>'
+              : p.verif_token ? '<span style="color:var(--text-3)">⏳</span>' : ''}
           </div>
         </div>`).join('');
 

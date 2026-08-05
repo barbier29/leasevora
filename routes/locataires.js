@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const { load, save, nextId } = require('../store');
 const { requireRole, denyRoles } = require('../middleware/auth');
 
@@ -36,6 +37,7 @@ router.post('/', MGR, (req, res) => {
         type_piece: type_piece || null,
         caution: Number(caution) || 0,
         notes: notes || null,
+        portal_token: crypto.randomBytes(16).toString('hex'),
         created_at: new Date().toISOString(),
     };
     data.locataires.push(l);

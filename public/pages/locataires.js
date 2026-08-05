@@ -33,6 +33,7 @@ async function renderLocatairesPage(container) {
                 <td class="text-muted">${l.type_piece ? `${TYPE_PIECE[l.type_piece] || l.type_piece} ${l.num_piece_identite ? '· ' + l.num_piece_identite : ''}` : '—'}</td>
                 <td>${l.caution > 0 ? `<span class="amount-in">${fmtMoney(l.caution)}</span>` : '—'}</td>
                 <td style="text-align:right;white-space:nowrap">
+                  ${l.portal_token ? `<button class="btn btn-ghost btn-sm send-portal-btn" data-id="${l.id}" title="Envoyer son espace locataire par WhatsApp">📲 Espace</button>` : ''}
                   <button class="btn btn-ghost btn-sm view-loc-btn" data-id="${l.id}">Fiche</button>
                   <button class="btn btn-ghost btn-sm edit-loc-btn" data-id="${l.id}">Modifier</button>
                   <button class="btn btn-danger btn-sm del-loc-btn" data-id="${l.id}" data-name="${l.nom}">✕</button>
@@ -54,6 +55,15 @@ async function renderLocatairesPage(container) {
         if (!confirm(`Supprimer le locataire "${btn.dataset.name}" ?`)) return;
         try { await api(`/locataires/${btn.dataset.id}`, { method: 'DELETE' }); toast('Locataire supprimé'); load(); }
         catch (e) { toast(e.message, 'error'); }
+      }));
+    container.querySelectorAll('.send-portal-btn').forEach(btn =>
+      btn.addEventListener('click', () => {
+        const l = locs.find(x => x.id == btn.dataset.id);
+        if (!l?.portal_token) return;
+        const url = `${window.location.origin}/l/${l.portal_token}`;
+        const msg = `Bonjour${l.prenom ? ' ' + l.prenom : ''}, voici votre espace locataire : vous y trouverez l'historique de vos loyers et vos reçus de paiement. Conservez ce lien, c'est votre preuve de paiement :\n${url}`;
+        const num = normalizeTel(l.telephone);
+        window.open(num ? `https://wa.me/${num}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
       }));
   }
 

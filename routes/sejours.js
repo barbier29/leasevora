@@ -132,7 +132,14 @@ router.get('/:id/solde', requireAuth, NO_TECH, (req, res) => {
         .sort((a, b) => b.date.localeCompare(a.date))
         .map(t => {
             const cat = data.categories.find(c => c.id === t.category_id) || {};
-            return { id: t.id, date: t.date, amount: t.amount, description: t.description || null, category_name: cat.name || '?', source: t.source || 'BANQUE' };
+            return {
+                id: t.id, date: t.date, amount: t.amount, description: t.description || null,
+                category_name: cat.name || '?', source: t.source || 'BANQUE',
+                mode_paiement: t.mode_paiement || null,
+                reference_paiement: t.reference_paiement || null,
+                verif_statut: t.verif_statut || null,
+                verif_token: t.verif_token || null,
+            };
         });
     const totalPaye = paiements.reduce((sum, t) => sum + t.amount, 0);
     const solde = totalDu - totalPaye;
@@ -224,6 +231,7 @@ router.post('/', requireAuth, NO_TECH, (req, res) => {
             type_piece: null,
             caution: Number(req.body.caution_montant) || 0,
             notes: null,
+            portal_token: require('crypto').randomBytes(16).toString('hex'),
             created_at: new Date().toISOString(),
         };
         data.locataires.push(newLoc);

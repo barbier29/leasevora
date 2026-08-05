@@ -15,6 +15,7 @@ router.get('/', requireRole('PROPRIETAIRE'), (req, res) => {
 router.post('/', requireRole('PROPRIETAIRE'), (req, res) => {
     const { nom, prenom, email, login, password, role, permissions } = req.body;
     if (!nom || !login || !password || !role) return res.status(400).json({ error: 'nom, login, password, role requis' });
+    if (password.length < 6) return res.status(400).json({ error: 'Le mot de passe doit faire au moins 6 caractères' });
     if (!ROLES.includes(role)) return res.status(400).json({ error: 'Rôle invalide' });
 
     const data = load();
@@ -46,6 +47,7 @@ router.put('/:id', requireRole('PROPRIETAIRE'), (req, res) => {
         nom, prenom: prenom || null, email: email || null, login,
         role, actif: actif !== false,
     };
+    if (password && password.length < 6) return res.status(400).json({ error: 'Le mot de passe doit faire au moins 6 caractères' });
     if (password) updated.password = hashPwd(password);
     if (permissions !== undefined) updated.permissions = Array.isArray(permissions) ? permissions : [];
     data.users[idx] = updated;

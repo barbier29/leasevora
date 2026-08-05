@@ -161,6 +161,16 @@ async function renderTransactionsPage(container) {
             <input class="form-control" id="f-amount" type="number" min="0" step="0.01" value="${txn?.amount || ''}" required />
           </div>
         </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Mode de paiement</label>
+            <select class="form-control" id="f-mode">${window.modePaiementOptions(txn?.mode_paiement || 'ESPECES')}</select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Réf. transaction <span style="color:var(--text-3)">(optionnel)</span></label>
+            <input class="form-control" id="f-ref" value="${txn?.reference_paiement || ''}" placeholder="ID T-Money, Flooz, virement…" />
+          </div>
+        </div>
         <div class="form-group">
           <label class="form-label">Description</label>
           <input class="form-control" id="f-desc" value="${txn?.description || ''}" placeholder="Note optionnelle" />
@@ -304,6 +314,8 @@ async function renderTransactionsPage(container) {
         property_id: parseInt(document.getElementById('f-prop').value),
         unit_id: document.getElementById('f-unit').value ? parseInt(document.getElementById('f-unit').value) : null,
         sejour_id: document.getElementById('f-sejour').value ? Number(document.getElementById('f-sejour').value) : null,
+        mode_paiement: document.getElementById('f-mode')?.value || null,
+        reference_paiement: document.getElementById('f-ref')?.value?.trim() || null,
       };
       try {
         let result;

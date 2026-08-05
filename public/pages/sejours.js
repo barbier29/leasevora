@@ -203,7 +203,14 @@ async function renderSejoursPage(container) {
                 <!-- rempli dynamiquement -->
               </select>
             </div>
+            <div style="flex:1;min-width:110px">
+              <label style="font-size:11px;color:var(--text-3);display:block;margin-bottom:4px">Mode</label>
+              <select class="form-control" id="pay-mode" style="height:36px;font-size:13px">${window.modePaiementOptions()}</select>
+            </div>
             <button class="btn btn-primary" id="pay-btn" style="height:36px;white-space:nowrap">💰 Encaisser</button>
+          </div>
+          <div style="margin-top:8px">
+            <input class="form-control" id="pay-ref" type="text" placeholder="Réf. transaction (T-Money, Flooz, virement…) — optionnel" style="height:34px;font-size:12.5px" />
           </div>
         </div>` : `<div style="color:var(--green);font-size:13px;font-weight:600;padding-top:4px">✓ Séjour intégralement soldé</div>`}
       </div>
@@ -314,7 +321,7 @@ async function renderSejoursPage(container) {
         if (!amount || amount <= 0) return toast('Montant invalide', 'error');
         const unit = units.find(u => u.id === s.unit_id) || {};
         try {
-          await api('/transactions', { method: 'POST', body: {
+          const txn = await api('/transactions', { method: 'POST', body: {
             date,
             description: `Loyer — ${s.locataire}`,
             kind: 'IN',
@@ -323,8 +330,11 @@ async function renderSejoursPage(container) {
             unit_id: s.unit_id || null,
             sejour_id: s.id,
             compte_id: parseInt(document.getElementById('pay-compte')?.value) || 1,
+            mode_paiement: document.getElementById('pay-mode')?.value || 'ESPECES',
+            reference_paiement: document.getElementById('pay-ref')?.value?.trim() || null,
           }});
           toast('Paiement enregistré');
+          window.proposeVerifWhatsApp(txn, loc?.telephone, loc?.prenom);
           if (confirm('Émettre la quittance de loyer ?')) {
               await window.printQuittance(s.id);
           }
@@ -840,15 +850,22 @@ async function renderSejoursPage(container) {
             ${solde.caution_date_restitution ? `<div style="font-size:11px;color:var(--text-3)">Restituée le ${fmtDate(solde.caution_date_restitution)}</div>` : ''}
         </div>` : '';
 
+    const VERIF_BADGES = {
+        CONFIRME:   '<span style="color:var(--green);font-weight:600;white-space:nowrap">✓ Confirmé</span>',
+        CONTESTE:   '<span style="color:var(--red);font-weight:700;white-space:nowrap">⚠ Contesté</span>',
+        EN_ATTENTE: '<span style="color:var(--text-3);white-space:nowrap">⏳ En attente</span>',
+    };
     const paiementsHtml = solde.paiements.length ? `
         <table style="font-size:12px;margin-top:10px">
-            <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th style="text-align:right">Montant</th></tr></thead>
+            <thead><tr><th>Date</th><th>Mode</th><th>Description</th><th style="text-align:right">Montant</th><th>Locataire</th><th></th></tr></thead>
             <tbody>
             ${solde.paiements.map(p => `<tr>
                 <td style="white-space:nowrap">${fmtDate(p.date)}</td>
-                <td class="text-muted">${p.category_name}</td>
+                <td class="text-muted">${window.MODES_PAIEMENT_LABELS[p.mode_paiement] || p.category_name}</td>
                 <td class="text-muted">${p.description || '—'}</td>
                 <td class="amount-in" style="text-align:right">${fmtMoney(p.amount)}</td>
+                <td>${p.verif_token ? (VERIF_BADGES[p.verif_statut] || VERIF_BADGES.EN_ATTENTE) : '<span class="text-muted">—</span>'}</td>
+                <td>${p.verif_token && p.verif_statut !== 'CONFIRME' ? `<button class="btn btn-ghost btn-sm resend-verif" data-token="${p.verif_token}" data-amount="${p.amount}" data-date="${p.date}" title="Renvoyer le lien de confirmation par WhatsApp">📲</button>` : ''}</td>
             </tr>`).join('')}
             </tbody>
         </table>` : `<p style="font-size:12px;color:var(--text-3);font-style:italic;margin-top:8px">Aucun paiement enregistré.</p>`;
@@ -887,6 +904,14 @@ async function renderSejoursPage(container) {
             ${solde.solde_restant > 0 ? `<button class="btn btn-primary" id="btn-add-paiement">💳 Enregistrer un paiement</button>` : ''}
         </div>
     `);
+
+    // Renvoi du lien de vérification par WhatsApp
+    document.querySelectorAll('.resend-verif').forEach(b => b.addEventListener('click', () => {
+        window.proposeVerifWhatsApp(
+            { verif_token: b.dataset.token, amount: parseFloat(b.dataset.amount), date: b.dataset.date, unit_label: solde.unit_label },
+            null, solde.locataire
+        );
+    }));
 
     // Bind caution actions
     document.getElementById('btn-caution-restituer')?.addEventListener('click', async () => {
@@ -956,6 +981,16 @@ async function renderSejoursPage(container) {
               <input class="form-control" id="qp-date" type="date" value="${today}" required />
             </div>
           </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Mode de paiement</label>
+              <select class="form-control" id="qp-mode">${window.modePaiementOptions()}</select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Réf. transaction <span style="color:var(--text-3)">(optionnel)</span></label>
+              <input class="form-control" id="qp-ref" type="text" placeholder="ID T-Money, Flooz…" />
+            </div>
+          </div>
           <div class="form-group">
             <label class="form-label">Description</label>
             <input class="form-control" id="qp-desc" type="text" value="Paiement — ${solde.unit_label}" />
@@ -971,7 +1006,7 @@ async function renderSejoursPage(container) {
         const btn = document.getElementById('qp-submit');
         btn.disabled = true;
         try {
-          await api('/transactions', {
+          const txn = await api('/transactions', {
             method: 'POST',
             body: {
               kind: 'IN',
@@ -979,9 +1014,12 @@ async function renderSejoursPage(container) {
               date: document.getElementById('qp-date').value,
               description: document.getElementById('qp-desc').value || null,
               sejour_id: s.id,
+              mode_paiement: document.getElementById('qp-mode')?.value || 'ESPECES',
+              reference_paiement: document.getElementById('qp-ref')?.value?.trim() || null,
             },
           });
           toast('Paiement enregistré ✓');
+          window.proposeVerifWhatsApp(txn, null, null);
           closeModal();
           load();
         } catch (err) { toast(err.message, 'error'); btn.disabled = false; }

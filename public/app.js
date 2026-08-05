@@ -39,6 +39,44 @@ window.fmtMoney = n => {
 window.fmtDate = d => { if (!d) return '—'; return new Date(d).toLocaleDateString('fr-FR'); };
 window.nbJours = (a, b) => { if (!a || !b) return null; return Math.max(0, Math.round((new Date(b) - new Date(a)) / 86400000)); };
 
+// ── Modes de paiement + vérification locataire par WhatsApp ────────────────
+window.MODES_PAIEMENT = [
+    ['ESPECES',  '💵 Espèces'],
+    ['TMONEY',   '📱 T-Money'],
+    ['FLOOZ',    '📱 Flooz'],
+    ['VIREMENT', '🏦 Virement'],
+    ['CARTE',    '💳 Carte'],
+    ['CHEQUE',   '📝 Chèque'],
+    ['AUTRE',    'Autre'],
+];
+window.MODES_PAIEMENT_LABELS = Object.fromEntries(window.MODES_PAIEMENT);
+
+// <option> HTML pour un <select> de mode de paiement (défaut : Espèces)
+window.modePaiementOptions = (selected = 'ESPECES') =>
+    window.MODES_PAIEMENT.map(([v, l]) => `<option value="${v}" ${v === selected ? 'selected' : ''}>${l}</option>`).join('');
+
+// Normalise un numéro togolais : "90 12 34 56" → "22890123456"
+window.normalizeTel = tel => {
+    if (!tel) return '';
+    let d = String(tel).replace(/\D/g, '');
+    if (d.startsWith('00')) d = d.slice(2);
+    if (d.length === 8) d = '228' + d; // numéro local Togo sans indicatif
+    return d;
+};
+
+// Propose l'envoi du reçu au locataire par WhatsApp (avec lien de vérification).
+// Sans téléphone, wa.me ouvre WhatsApp et laisse le gérant choisir le contact.
+window.proposeVerifWhatsApp = (txn, tel, prenom) => {
+    if (!txn || !txn.verif_token) return;
+    const msg = `Bonjour${prenom ? ' ' + prenom : ''}, un paiement de ${fmtMoney(txn.amount)} a été enregistré le ${fmtDate(txn.date)} pour votre logement${txn.unit_label ? ' (' + txn.unit_label + ')' : ''}.\n\nVotre reçu — merci de vérifier et confirmer le montant :\n${window.location.origin}/v/${txn.verif_token}`;
+    if (!confirm('📲 Envoyer le reçu au locataire par WhatsApp pour qu\'il confirme le montant ?')) return;
+    const num = normalizeTel(tel);
+    const url = num
+        ? `https://wa.me/${num}?text=${encodeURIComponent(msg)}`
+        : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+};
+
 function printSection(title, contentHtml) {
     const w = window.open('', '_blank');
     w.document.write(`<!DOCTYPE html><html lang="fr"><head>

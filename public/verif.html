@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vérification de paiement — Leasevora</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+         background:#f4f6f9; color:#1a202c; min-height:100vh;
+         display:flex; align-items:center; justify-content:center; padding:16px; }
+  .card { background:#fff; border-radius:16px; box-shadow:0 4px 24px rgba(0,0,0,.08);
+          max-width:420px; width:100%; padding:28px 24px; }
+  .brand { font-size:13px; font-weight:700; letter-spacing:.08em; color:#64748b;
+           text-transform:uppercase; margin-bottom:20px; }
+  h1 { font-size:19px; margin-bottom:4px; }
+  .sub { font-size:14px; color:#64748b; margin-bottom:22px; }
+  .amount { font-size:34px; font-weight:800; margin:6px 0 2px; }
+  .row { display:flex; justify-content:space-between; padding:10px 0;
+         border-bottom:1px solid #eef1f5; font-size:14.5px; }
+  .row:last-of-type { border-bottom:none; }
+  .row .k { color:#64748b; }
+  .row .v { font-weight:600; text-align:right; }
+  .btns { display:flex; flex-direction:column; gap:10px; margin-top:24px; }
+  button { border:none; border-radius:12px; padding:15px; font-size:16px;
+           font-weight:700; cursor:pointer; width:100%; }
+  .ok  { background:#16a34a; color:#fff; }
+  .ko  { background:#fff; color:#dc2626; border:2px solid #dc2626; }
+  .ok:active { background:#15803d; } .ko:active { background:#fef2f2; }
+  textarea { width:100%; border:1.5px solid #e2e8f0; border-radius:10px;
+             padding:12px; font-size:15px; margin-top:12px; min-height:80px;
+             font-family:inherit; display:none; }
+  .state { text-align:center; padding:18px 12px; border-radius:12px;
+           font-size:15.5px; font-weight:600; margin-top:20px; display:none; }
+  .state.confirmed { background:#f0fdf4; color:#15803d; }
+  .state.contested { background:#fef2f2; color:#b91c1c; }
+  .loading, .error { text-align:center; padding:40px 12px; color:#64748b; font-size:15px; }
+  .error { color:#b91c1c; display:none; }
+  .note { font-size:12.5px; color:#94a3b8; margin-top:18px; text-align:center; line-height:1.5; }
+  #content { display:none; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">Leasevora · Reçu de paiement</div>
+  <div class="loading" id="loading">Chargement du reçu…</div>
+  <div class="error" id="error"></div>
+
+  <div id="content">
+    <h1 id="greet">Bonjour,</h1>
+    <p class="sub">Un paiement a été enregistré à votre nom.<br>Merci de vérifier le montant ci-dessous.</p>
+
+    <div class="amount" id="amount"></div>
+
+    <div class="row"><span class="k">Date</span><span class="v" id="date"></span></div>
+    <div class="row"><span class="k">Mode</span><span class="v" id="mode"></span></div>
+    <div class="row" id="ref-row" style="display:none"><span class="k">Référence</span><span class="v" id="ref"></span></div>
+    <div class="row"><span class="k">Logement</span><span class="v" id="logement"></span></div>
+
+    <div class="btns" id="btns">
+      <button class="ok" id="btn-ok">✓ Oui, c'est le bon montant</button>
+      <button class="ko" id="btn-ko">✗ Non, le montant est faux</button>
+    </div>
+    <textarea id="motif" placeholder="Expliquez le problème (ex : j'ai payé 200 000, pas 150 000)"></textarea>
+    <button class="ko" id="btn-send-ko" style="display:none;margin-top:10px">Envoyer la contestation</button>
+
+    <div class="state confirmed" id="st-ok" style="display:none">✓ Paiement confirmé. Merci !</div>
+    <div class="state contested" id="st-ko" style="display:none">Votre contestation a été enregistrée.<br>Le propriétaire en est informé.</div>
+
+    <p class="note">Ce reçu est votre preuve de paiement. Conservez ce lien.<br>
+    Si le montant affiché ne correspond pas à ce que vous avez réellement payé, contestez-le : c'est votre protection.</p>
+  </div>
+</div>
+
+<script>
+(async function () {
+  const token = location.pathname.split('/').pop();
+  const $ = id => document.getElementById(id);
+
+  const MODES = { ESPECES:'Espèces', TMONEY:'T-Money', FLOOZ:'Flooz', VIREMENT:'Virement bancaire', CARTE:'Carte bancaire', CHEQUE:'Chèque', AUTRE:'Autre' };
+  const CURR  = { XOF:{s:'FCFA',after:true,dec:0}, XAF:{s:'FCFA',after:true,dec:0}, EUR:{s:'€',after:true,dec:2}, USD:{s:'$',after:false,dec:2} };
+
+  function fmtMoney(n, code) {
+    const c = CURR[code] || { s: code, after: true, dec: 2 };
+    const v = Number(n).toLocaleString('fr-FR', { minimumFractionDigits: c.dec, maximumFractionDigits: c.dec });
+    return c.after ? v + ' ' + c.s : c.s + v;
+  }
+
+  function showState(statut) {
+    if (statut === 'CONFIRME') { $('btns').style.display = 'none'; $('motif').style.display = 'none'; $('btn-send-ko').style.display = 'none'; $('st-ok').classList.add('confirmed'); $('st-ok').style.display = 'block'; }
+    if (statut === 'CONTESTE') { $('btns').style.display = 'none'; $('motif').style.display = 'none'; $('btn-send-ko').style.display = 'none'; $('st-ko').style.display = 'block'; }
+  }
+
+  let d;
+  try {
+    const r = await fetch('/api/verif/' + token);
+    if (!r.ok) throw new Error((await r.json()).error || 'Erreur');
+    d = await r.json();
+  } catch (e) {
+    $('loading').style.display = 'none';
+    $('error').textContent = e.message || 'Lien invalide ou expiré.';
+    $('error').style.display = 'block';
+    return;
+  }
+
+  $('loading').style.display = 'none';
+  $('content').style.display = 'block';
+  if (d.locataire_prenom) $('greet').textContent = 'Bonjour ' + d.locataire_prenom + ',';
+  $('amount').textContent = fmtMoney(d.montant, d.devise);
+  $('date').textContent = new Date(d.date).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+  $('mode').textContent = MODES[d.mode_paiement] || 'Non précisé';
+  if (d.reference_paiement) { $('ref-row').style.display = 'flex'; $('ref').textContent = d.reference_paiement; }
+  $('logement').textContent = [d.propriete, d.appartement].filter(Boolean).join(' · ') || '—';
+  showState(d.statut);
+
+  async function repondre(action, commentaire) {
+    const r = await fetch('/api/verif/' + token + '/repondre', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, commentaire })
+    });
+    const j = await r.json();
+    if (!r.ok) { alert(j.error || 'Erreur'); return; }
+    showState(j.statut);
+  }
+
+  $('btn-ok').addEventListener('click', () => repondre('CONFIRMER'));
+  $('btn-ko').addEventListener('click', () => {
+    $('motif').style.display = 'block';
+    $('btn-send-ko').style.display = 'block';
+    $('btn-ko').style.display = 'none';
+    $('motif').focus();
+  });
+  $('btn-send-ko').addEventListener('click', () => repondre('CONTESTER', $('motif').value));
+})();
+</script>
+</body>
+</html>
