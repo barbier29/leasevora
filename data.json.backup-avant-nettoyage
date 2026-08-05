@@ -1,0 +1,903 @@
+{
+  "_seq": {
+    "categories": 47,
+    "properties": 5,
+    "units": 9,
+    "transactions": 13,
+    "sejours": 11,
+    "travaux": 4,
+    "users": 3,
+    "notes": 1,
+    "locataires": 3
+  },
+  "properties": [
+    {
+      "id": 2,
+      "name": "immeuble Galaxy",
+      "type": "BUILDING",
+      "address": "soviepe",
+      "solde_initial_caisse": 120000,
+      "created_at": "2026-02-25T18:03:37.288Z",
+      "nb_etages": null,
+      "annee_construction": null,
+      "surface_totale": null,
+      "description": null
+    }
+  ],
+  "units": [
+    {
+      "id": 6,
+      "property_id": 2,
+      "label": "101",
+      "status": "VACANT",
+      "expected_rent": 0,
+      "created_at": "2026-03-28T23:08:07.729Z",
+      "type": "APPARTEMENT",
+      "nb_pieces": 3,
+      "surface": null,
+      "etage": 0,
+      "description": null,
+      "nb_chambres": 2,
+      "nb_sdb": 0,
+      "meuble": true,
+      "balcon": false,
+      "cave": false,
+      "parking_inclus": false
+    },
+    {
+      "id": 7,
+      "property_id": 2,
+      "label": "102",
+      "status": "VACANT",
+      "expected_rent": 0,
+      "created_at": "2026-03-28T23:08:17.363Z",
+      "type": "APPARTEMENT",
+      "nb_pieces": null,
+      "surface": null,
+      "etage": null,
+      "description": null,
+      "nb_chambres": null,
+      "nb_sdb": null,
+      "meuble": false,
+      "balcon": false,
+      "cave": false,
+      "parking_inclus": false
+    },
+    {
+      "id": 8,
+      "property_id": 2,
+      "label": "201",
+      "type": "APPARTEMENT",
+      "status": "VACANT",
+      "expected_rent": 0,
+      "nb_pieces": null,
+      "surface": null,
+      "etage": 0,
+      "description": null,
+      "nb_chambres": null,
+      "nb_sdb": null,
+      "meuble": false,
+      "balcon": false,
+      "cave": false,
+      "parking_inclus": false,
+      "created_at": "2026-03-29T09:13:53.010Z"
+    }
+  ],
+  "categories": [
+    {
+      "id": 1,
+      "name": "Loyer mensuel",
+      "kind": "IN",
+      "created_at": "2026-02-25T16:44:33.559Z"
+    },
+    {
+      "id": 2,
+      "name": "Revenus divers",
+      "kind": "IN",
+      "created_at": "2026-02-25T16:44:33.559Z"
+    },
+    {
+      "id": 3,
+      "name": "Maintenance & réparations",
+      "kind": "OUT",
+      "created_at": "2026-02-25T16:44:33.559Z"
+    },
+    {
+      "id": 4,
+      "name": "Salaire / Personnel",
+      "kind": "OUT",
+      "created_at": "2026-02-25T16:44:33.559Z"
+    },
+    {
+      "id": 5,
+      "name": "Charges & fluides",
+      "kind": "OUT",
+      "created_at": "2026-02-25T16:44:33.559Z"
+    },
+    {
+      "id": 6,
+      "name": "Assurance propriétaire",
+      "kind": "OUT",
+      "created_at": "2026-02-25T16:44:33.559Z"
+    },
+    {
+      "id": 7,
+      "name": "Taxes & impôts",
+      "kind": "OUT",
+      "created_at": "2026-02-25T16:44:33.559Z"
+    },
+    {
+      "id": 8,
+      "name": "Loyer journalier",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 9,
+      "name": "Loyer hebdomadaire",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 10,
+      "name": "Caution / Dépôt de garantie",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 11,
+      "name": "Remboursement de caution",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 12,
+      "name": "Charges récupérables",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 13,
+      "name": "Frais d'agence (entrée)",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 14,
+      "name": "Indemnité d'occupation",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 15,
+      "name": "Pénalités de retard locataire",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 16,
+      "name": "Remboursement assurance",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 17,
+      "name": "Avance sur loyer",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 18,
+      "name": "Subvention / Aide",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 19,
+      "name": "Autres revenus",
+      "kind": "IN",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 20,
+      "name": "Plomberie",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 21,
+      "name": "Électricité / Travaux électriques",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 22,
+      "name": "Peinture & décoration",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 23,
+      "name": "Menuiserie / Serrurerie",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 24,
+      "name": "Climatisation / Chauffage",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 25,
+      "name": "Nettoyage & entretien",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 26,
+      "name": "Jardinage & espaces verts",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 27,
+      "name": "Charges de copropriété",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 28,
+      "name": "Eau & assainissement",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 29,
+      "name": "Internet & téléphone",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 30,
+      "name": "Assurance multirisque",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 31,
+      "name": "Taxe foncière",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 32,
+      "name": "Taxe d'habitation",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 33,
+      "name": "Honoraires notaire",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 34,
+      "name": "Honoraires avocat",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 35,
+      "name": "Frais bancaires",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 36,
+      "name": "Remboursement emprunt",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 37,
+      "name": "Intérêts d'emprunt",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 38,
+      "name": "Publicité / Annonces",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 39,
+      "name": "Frais de gestion",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 40,
+      "name": "Achat mobilier",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 41,
+      "name": "Achat équipements",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 42,
+      "name": "Travaux de rénovation",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 43,
+      "name": "Mise aux normes",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 44,
+      "name": "Sinistre & dommages",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 45,
+      "name": "Déménagement / Installation",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 46,
+      "name": "Amendes & pénalités",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    },
+    {
+      "id": 47,
+      "name": "Autres dépenses",
+      "kind": "OUT",
+      "created_at": "2026-03-29T00:00:00.000Z"
+    }
+  ],
+  "transactions": [
+    {
+      "id": 3,
+      "date": "2025-03-01",
+      "description": "Test",
+      "kind": "IN",
+      "amount": 150,
+      "category_id": null,
+      "property_id": null,
+      "unit_id": 4,
+      "sejour_id": 6,
+      "source": "BANQUE",
+      "created_at": "2026-03-28T23:02:06.298Z",
+      "compte_id": 2,
+      "mode_paiement": null,
+      "reference_paiement": null,
+      "verif_token": "b8b40e4993da6fac0c20392393ef9327",
+      "verif_statut": "EN_ATTENTE",
+      "verif_historique": []
+    },
+    {
+      "id": 4,
+      "date": "2026-03-29",
+      "description": "Loyer — jean vnn",
+      "kind": "IN",
+      "amount": 200000,
+      "category_id": null,
+      "property_id": 2,
+      "unit_id": 7,
+      "sejour_id": 8,
+      "source": "CAISSE",
+      "created_at": "2026-03-29T09:50:59.981Z",
+      "compte_id": 1,
+      "mode_paiement": null,
+      "reference_paiement": null,
+      "verif_token": "a1a1182a26605bae316e34167e800d57",
+      "verif_statut": "EN_ATTENTE",
+      "verif_historique": []
+    },
+    {
+      "id": 5,
+      "date": "2026-03-29",
+      "description": "Loyer — jean dupont",
+      "kind": "IN",
+      "amount": 12000,
+      "category_id": null,
+      "property_id": 2,
+      "unit_id": 6,
+      "sejour_id": 7,
+      "compte_id": 1,
+      "source": "CAISSE",
+      "created_at": "2026-03-29T19:11:37.036Z",
+      "mode_paiement": null,
+      "reference_paiement": null,
+      "verif_token": "757fce6099b7691db8964a17fa990759",
+      "verif_statut": "EN_ATTENTE",
+      "verif_historique": []
+    },
+    {
+      "id": 6,
+      "date": "2026-03-29",
+      "description": "Loyer — jeannine",
+      "kind": "IN",
+      "amount": 20000,
+      "category_id": null,
+      "property_id": 2,
+      "unit_id": 7,
+      "sejour_id": 9,
+      "compte_id": 1,
+      "source": "CAISSE",
+      "created_at": "2026-03-29T19:35:58.363Z",
+      "mode_paiement": null,
+      "reference_paiement": null,
+      "verif_token": "f9abf99dba3ab541416211e4fc5a3514",
+      "verif_statut": "EN_ATTENTE",
+      "verif_historique": []
+    },
+    {
+      "id": 7,
+      "date": "2026-03-29",
+      "description": null,
+      "kind": "OUT",
+      "amount": 40000,
+      "category_id": 19,
+      "property_id": 2,
+      "unit_id": null,
+      "sejour_id": null,
+      "compte_id": 1,
+      "source": "CAISSE",
+      "created_at": "2026-03-29T19:38:21.988Z",
+      "mode_paiement": null,
+      "reference_paiement": null
+    },
+    {
+      "id": 8,
+      "date": "2026-03-29",
+      "description": "paiement anani remboursement erreur",
+      "kind": "OUT",
+      "amount": 20000,
+      "category_id": 25,
+      "property_id": 2,
+      "unit_id": 6,
+      "sejour_id": null,
+      "compte_id": 1,
+      "source": "CAISSE",
+      "created_at": "2026-03-29T19:52:34.431Z",
+      "mode_paiement": null,
+      "reference_paiement": null
+    },
+    {
+      "id": 9,
+      "date": "2026-08-05",
+      "description": "Loyer août — test",
+      "kind": "IN",
+      "amount": 20000,
+      "category_id": null,
+      "property_id": 2,
+      "unit_id": 7,
+      "sejour_id": 9,
+      "compte_id": 1,
+      "source": "CAISSE",
+      "mode_paiement": "TMONEY",
+      "reference_paiement": "TM-TEST-001",
+      "created_at": "2026-08-05T21:05:59.425Z",
+      "verif_token": "16105ab6af4e8338f26a52bc79d0ab70",
+      "verif_statut": "CONTESTE",
+      "verif_historique": [
+        {
+          "action": "CONTESTE",
+          "commentaire": "J ai payé 25000, pas 20000",
+          "date": "2026-08-05T21:06:10.593Z"
+        }
+      ]
+    }
+  ],
+  "sejours": [
+    {
+      "id": 1,
+      "unit_id": 1,
+      "locataire": "Nils barben",
+      "date_debut": "2025-09-24",
+      "date_fin": null,
+      "type_tarif": "MENSUEL",
+      "montant": 100000,
+      "statut": "A_VENIR",
+      "notes": null,
+      "created_at": "2026-02-25T16:58:05.412Z",
+      "caution_montant": 0,
+      "caution_statut": "AUCUNE",
+      "caution_date": null,
+      "caution_date_restitution": null,
+      "caution_montant_utilise": 0,
+      "caution_notes": null,
+      "caution_historique": [],
+      "long_terme": false,
+      "jour_paiement": null
+    },
+    {
+      "id": 2,
+      "unit_id": 5,
+      "locataire": "JEAN DUPONT",
+      "locataire_id": null,
+      "date_debut": "2026-02-26",
+      "date_fin": "2026-02-28",
+      "heure_entree": "14:00",
+      "heure_sortie": "14:00",
+      "type_tarif": "MENSUEL",
+      "montant": 12000,
+      "statut": "A_VENIR",
+      "notes": null,
+      "created_at": "2026-02-25T20:14:50.410Z",
+      "caution_montant": 0,
+      "caution_statut": "AUCUNE",
+      "caution_date": null,
+      "caution_date_restitution": null,
+      "caution_montant_utilise": 0,
+      "caution_notes": null,
+      "caution_historique": [],
+      "long_terme": false,
+      "jour_paiement": null
+    },
+    {
+      "id": 3,
+      "unit_id": 3,
+      "locataire": "francaisoo",
+      "locataire_id": null,
+      "date_debut": "2026-02-12",
+      "date_fin": "2026-02-28",
+      "heure_entree": "18:14",
+      "heure_sortie": "14:30",
+      "type_tarif": "MENSUEL",
+      "montant": 121222,
+      "statut": "A_VENIR",
+      "notes": null,
+      "created_at": "2026-02-25T20:39:20.450Z",
+      "caution_montant": 0,
+      "caution_statut": "AUCUNE",
+      "caution_date": null,
+      "caution_date_restitution": null,
+      "caution_montant_utilise": 0,
+      "caution_notes": null,
+      "caution_historique": [],
+      "long_terme": false,
+      "jour_paiement": null
+    },
+    {
+      "id": 4,
+      "unit_id": 2,
+      "locataire": "john",
+      "locataire_id": null,
+      "date_debut": "2026-02-18",
+      "date_fin": "2026-02-28",
+      "heure_entree": "14:00",
+      "heure_sortie": "11:00",
+      "type_tarif": "MENSUEL",
+      "montant": 212222,
+      "statut": "A_VENIR",
+      "notes": null,
+      "created_at": "2026-02-25T20:39:42.024Z",
+      "caution_montant": 0,
+      "caution_statut": "AUCUNE",
+      "caution_date": null,
+      "caution_date_restitution": null,
+      "caution_montant_utilise": 0,
+      "caution_notes": null,
+      "caution_historique": [],
+      "long_terme": false,
+      "jour_paiement": null
+    },
+    {
+      "id": 5,
+      "unit_id": 4,
+      "locataire": "dejej",
+      "locataire_id": null,
+      "date_debut": "2026-02-25",
+      "date_fin": "2026-03-07",
+      "heure_entree": "14:00",
+      "heure_sortie": "11:00",
+      "type_tarif": "FORFAIT",
+      "montant": 200000,
+      "statut": "A_VENIR",
+      "notes": null,
+      "created_at": "2026-02-25T22:12:43.693Z",
+      "caution_montant": 0,
+      "caution_statut": "AUCUNE",
+      "caution_date": null,
+      "caution_date_restitution": null,
+      "caution_montant_utilise": 0,
+      "caution_notes": null,
+      "caution_historique": [],
+      "long_terme": false,
+      "jour_paiement": null
+    },
+    {
+      "id": 6,
+      "unit_id": 4,
+      "locataire": "jeanine",
+      "locataire_id": null,
+      "date_debut": "2026-03-28",
+      "date_fin": "2026-04-05",
+      "heure_entree": null,
+      "heure_sortie": null,
+      "type_tarif": "FORFAIT",
+      "montant": 100000,
+      "statut": "A_VENIR",
+      "notes": null,
+      "created_at": "2026-03-27T21:46:59.179Z",
+      "caution_montant": 0,
+      "caution_statut": "AUCUNE",
+      "caution_date": null,
+      "caution_date_restitution": null,
+      "caution_montant_utilise": 0,
+      "caution_notes": null,
+      "caution_historique": [],
+      "long_terme": false,
+      "jour_paiement": null
+    },
+    {
+      "id": 7,
+      "unit_id": 6,
+      "locataire": "jean dupont",
+      "locataire_id": null,
+      "date_debut": "2026-03-30",
+      "date_fin": "2026-04-02",
+      "heure_entree": "14:00",
+      "heure_sortie": "11:00",
+      "type_tarif": "MENSUEL",
+      "montant": 12000,
+      "statut": "A_VENIR",
+      "notes": null,
+      "caution_montant": 0,
+      "caution_statut": "AUCUNE",
+      "caution_date": null,
+      "caution_date_restitution": null,
+      "caution_montant_utilise": 0,
+      "caution_notes": null,
+      "created_at": "2026-03-28T23:30:46.883Z",
+      "caution_historique": [],
+      "long_terme": false,
+      "jour_paiement": null
+    },
+    {
+      "id": 8,
+      "unit_id": 7,
+      "locataire": "jean vnn",
+      "locataire_id": null,
+      "date_debut": "2026-03-31",
+      "date_fin": "2026-03-31",
+      "heure_entree": null,
+      "heure_sortie": null,
+      "type_tarif": "FORFAIT",
+      "montant": 200000,
+      "statut": "A_VENIR",
+      "notes": null,
+      "caution_montant": 1000,
+      "caution_statut": "EN_ATTENTE",
+      "caution_date": "2026-03-31",
+      "caution_date_restitution": null,
+      "caution_montant_utilise": 0,
+      "caution_notes": null,
+      "created_at": "2026-03-29T09:22:38.911Z",
+      "caution_historique": [],
+      "long_terme": false,
+      "jour_paiement": null
+    },
+    {
+      "id": 9,
+      "unit_id": 7,
+      "locataire": "jeannine",
+      "locataire_id": 1,
+      "date_debut": "2026-04-03",
+      "date_fin": null,
+      "heure_entree": "14:00",
+      "heure_sortie": "11:00",
+      "type_tarif": "MENSUEL",
+      "montant": 20000,
+      "statut": "A_VENIR",
+      "notes": null,
+      "caution_montant": 0,
+      "caution_statut": "AUCUNE",
+      "caution_date": null,
+      "caution_date_restitution": null,
+      "caution_montant_utilise": 0,
+      "caution_notes": null,
+      "created_at": "2026-03-29T19:35:51.380Z",
+      "caution_historique": [],
+      "long_terme": false,
+      "jour_paiement": null
+    }
+  ],
+  "locataires": [
+    {
+      "id": 1,
+      "nom": "AGBEKO",
+      "prenom": "Jeannine",
+      "email": null,
+      "telephone": "90 12 34 56",
+      "num_piece_identite": null,
+      "type_piece": null,
+      "caution": 0,
+      "notes": null,
+      "portal_token": "3a08631088e0fec6a605db95f4105c71",
+      "created_at": "2026-08-05T21:06:25.510Z"
+    }
+  ],
+  "travaux": [
+    {
+      "id": 1,
+      "property_id": 3,
+      "unit_id": 2,
+      "titre": "evier",
+      "description": null,
+      "date": "2026-02-25",
+      "statut": "TERMINE",
+      "priorite": "HAUTE",
+      "prestataire": null,
+      "montant_devis": null,
+      "montant_facture": null,
+      "transaction_id": null,
+      "created_at": "2026-02-25T19:05:54.732Z",
+      "type_travail": "REPARATION",
+      "historique": [],
+      "contact_prestataire": null,
+      "date_fin_prevue": null,
+      "date_fin_reelle": null,
+      "garantie_mois": null
+    },
+    {
+      "id": 2,
+      "property_id": 3,
+      "unit_id": 3,
+      "titre": "reparation fuite d'eau",
+      "description": null,
+      "date": "2026-02-25",
+      "statut": "TERMINE",
+      "priorite": "BASSE",
+      "prestataire": "anani",
+      "montant_devis": 12221,
+      "montant_facture": 3232132,
+      "transaction_id": null,
+      "created_at": "2026-02-25T20:41:04.517Z",
+      "type_travail": "REPARATION",
+      "historique": [],
+      "contact_prestataire": null,
+      "date_fin_prevue": null,
+      "date_fin_reelle": null,
+      "garantie_mois": null
+    },
+    {
+      "id": 3,
+      "property_id": 3,
+      "unit_id": 3,
+      "titre": "chuaffe eau",
+      "description": "remplacement dju chauffe eau",
+      "date": "2026-03-27",
+      "statut": "DEVIS_RECU",
+      "priorite": "HAUTE",
+      "type_travail": "REPARATION",
+      "prestataire": "anani",
+      "contact_prestataire": "92030405",
+      "montant_devis": null,
+      "montant_facture": null,
+      "transaction_id": null,
+      "date_fin_prevue": null,
+      "date_fin_reelle": null,
+      "garantie_mois": null,
+      "historique": [
+        {
+          "statut_avant": "A_FAIRE",
+          "statut_apres": "PRESTATAIRE_CONTACTE",
+          "date": "2026-03-27T21:11:53.088Z",
+          "note": null,
+          "utilisateur": "admin"
+        },
+        {
+          "statut_avant": "PRESTATAIRE_CONTACTE",
+          "statut_apres": "DEVIS_RECU",
+          "date": "2026-03-27T21:11:57.515Z",
+          "note": null,
+          "utilisateur": "admin"
+        }
+      ],
+      "created_at": "2026-03-27T21:11:37.962Z"
+    }
+  ],
+  "compteurs": [],
+  "users": [
+    {
+      "id": 1,
+      "nom": "Admin",
+      "prenom": "Propriétaire",
+      "email": "admin@propmanager.fr",
+      "login": "admin",
+      "password": "43611868799e7822594fb181ec3b66375bb99058b086dd3ed9ac21ef7a19b03c",
+      "role": "PROPRIETAIRE",
+      "actif": true,
+      "created_at": "2026-02-25T20:09:19.353Z",
+      "permissions": []
+    },
+    {
+      "id": 2,
+      "nom": "Mbogan",
+      "prenom": "Orlane",
+      "email": null,
+      "login": "orlane",
+      "password": "866e9b328200e1f9ea55acfcef9d24d3b3c1d51a55423dd29dde82d69cde0ae9",
+      "role": "EMPLOYE",
+      "actif": true,
+      "created_at": "2026-03-27T21:33:47.002Z",
+      "permissions": []
+    },
+    {
+      "id": 3,
+      "nom": "Démo",
+      "prenom": "Compte",
+      "email": "demo@leasevora.com",
+      "login": "demo",
+      "password": "e0876804623583bea6542ee1ed6de3b8945412a1a63fdce32a37a5312ba594de",
+      "role": "GESTIONNAIRE",
+      "permissions": [
+        "dashboard",
+        "properties",
+        "units",
+        "locataires",
+        "sejours",
+        "calendrier",
+        "travaux",
+        "compteurs"
+      ],
+      "actif": true,
+      "is_demo": true,
+      "created_at": "2026-08-05T21:05:31.046Z"
+    }
+  ],
+  "settings": {
+    "currency": "XOF",
+    "language": "fr"
+  },
+  "notes": [
+    {
+      "id": 1,
+      "content": "faire remplacer la clim",
+      "property_id": 2,
+      "unit_id": 6,
+      "sejour_id": null,
+      "pinned": false,
+      "author_id": 1,
+      "author_login": "admin",
+      "author_name": "Propriétaire Admin",
+      "created_at": "2026-03-29T09:21:30.139Z",
+      "updated_at": "2026-03-29T09:21:40.521Z"
+    }
+  ],
+  "comptes": [
+    {
+      "id": 1,
+      "nom": "Caisse principale",
+      "type": "CAISSE",
+      "solde_initial": 0,
+      "actif": true,
+      "created_at": "2026-03-29T19:11:37.036Z"
+    },
+    {
+      "id": 2,
+      "nom": "Compte bancaire",
+      "type": "BANQUE",
+      "solde_initial": 0,
+      "actif": true,
+      "created_at": "2026-03-29T19:11:37.036Z"
+    }
+  ],
+  "activite": [],
+  "invitations": []
+}

@@ -68,6 +68,8 @@
   const CURR = { XOF:{s:'FCFA',after:true,dec:0}, XAF:{s:'FCFA',after:true,dec:0}, EUR:{s:'€',after:true,dec:2}, USD:{s:'$',after:false,dec:2} };
 
   let devise = 'XOF';
+  // Échappement HTML — toute donnée serveur interpolée dans innerHTML passe par ici
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   function fmtMoney(n) {
     const c = CURR[devise] || { s: devise, after: true, dec: 2 };
     const v = Number(n).toLocaleString('fr-FR', { minimumFractionDigits: c.dec, maximumFractionDigits: c.dec });
@@ -100,7 +102,7 @@
 
   $('sejours').innerHTML = (d.sejours || []).map(s => `
     <div class="card">
-      <div class="logement">🏠 ${[s.propriete, s.appartement].filter(Boolean).join(' · ')}</div>
+      <div class="logement">🏠 ${esc([s.propriete, s.appartement].filter(Boolean).join(' · '))}</div>
       <div class="periode">Depuis le ${fmtDate(s.date_debut)}${s.date_fin ? ' → ' + fmtDate(s.date_fin) : ''}${s.loyer_mensuel ? ' · ' + fmtMoney(s.loyer_mensuel) + '/mois' : ''}${s.jour_paiement ? ' · payable le ' + s.jour_paiement : ''}</div>
       <div class="stats">
         <div class="stat"><div class="v">${fmtMoney(s.total_du)}</div><div class="k">Total dû</div></div>

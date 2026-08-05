@@ -121,14 +121,20 @@ router.put('/:id', MGR, (req, res) => {
     const idx = data.transactions.findIndex(t => t.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
 
-    // Intégrité : modifier le montant d'un paiement déjà confirmé par le locataire
-    // invalide sa confirmation — retour à EN_ATTENTE, avec trace de l'ancien montant.
+    // Intégrité du cycle de vérification :
+    // - montant modifié sur un paiement CONFIRMÉ → la confirmation ne vaut plus, retour EN_ATTENTE
+    // - montant modifié sur un paiement CONTESTÉ → c'est la correction du gérant, le cycle
+    //   se ROUVRE (EN_ATTENTE) et le locataire peut enfin confirmer le montant corrigé.
+    //   Sans ça, toute contestation serait un cul-de-sac définitif (verif.js bloque la
+    //   re-confirmation d'un paiement CONTESTE).
     const prev = data.transactions[idx];
-    if (prev.verif_token && prev.verif_statut === 'CONFIRME' && Number(amount) !== prev.amount) {
+    if (prev.verif_token && Number(amount) !== prev.amount &&
+        (prev.verif_statut === 'CONFIRME' || prev.verif_statut === 'CONTESTE')) {
+        const wasConteste = prev.verif_statut === 'CONTESTE';
         prev.verif_statut = 'EN_ATTENTE';
         prev.verif_historique = prev.verif_historique || [];
         prev.verif_historique.push({
-            action: 'MONTANT_MODIFIE_APRES_CONFIRMATION',
+            action: wasConteste ? 'MONTANT_CORRIGE_APRES_CONTESTATION' : 'MONTANT_MODIFIE_APRES_CONFIRMATION',
             ancien_montant: prev.amount,
             nouveau_montant: Number(amount),
             par: req.user?.login || '?',
@@ -160,7 +166,14 @@ router.put('/:id', MGR, (req, res) => {
 
 router.delete('/:id', MGR, (req, res) => {
     const data = load();
-    data.transactions = data.transactions.filter(t => t.id !== Number(req.params.id));
+    const t = data.transactions.find(t => t.id === Number(req.params.id));
+    if (!t) return res.status(404).json({ error: 'Non trouvé' });
+    // Anti-fraude : un paiement contesté par le locataire ne peut pas être supprimé —
+    // sinon le gérant efface la contestation et recrée un paiement au montant de son choix.
+    // Il doit corriger le montant (PUT), ce qui rouvre le cycle de vérification.
+    if (t.verif_statut === 'CONTESTE')
+        return res.status(403).json({ error: 'Ce paiement a été contesté par le locataire. Corrigez son montant plutôt que de le supprimer — la contestation doit être résolue, pas effacée.' });
+    data.transactions = data.transactions.filter(x => x.id !== Number(req.params.id));
     save(data);
     res.json({ success: true });
 });

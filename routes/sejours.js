@@ -216,7 +216,20 @@ router.post('/', requireAuth, NO_TECH, (req, res) => {
     if (isNaN(parsedMontant) || parsedMontant <= 0)
         return res.status(400).json({ error: 'Le montant doit être positif' });
 
+    // Anti-XSS stocké sur les noms affichés en innerHTML
+    const hasHtml = s => typeof s === 'string' && /[<>]/.test(s);
+    if (hasHtml(locataire) || hasHtml(req.body.nom_locataire) || hasHtml(req.body.prenom_locataire))
+        return res.status(400).json({ error: 'Le nom ne peut pas contenir < ou >' });
+
     const data = load();
+
+    // Intégrité référentielle : un séjour vers un appartement inexistant rend ses
+    // paiements invisibles dans toutes les vues par propriété (caisse, dashboard).
+    const unitExists = data.units.some(u => u.id === Number(unit_id));
+    if (!unitExists)
+        return res.status(400).json({ error: `Appartement introuvable (unit_id ${unit_id})` });
+    if (locataire_id && !data.locataires.some(l => l.id === Number(locataire_id)))
+        return res.status(400).json({ error: `Locataire introuvable (locataire_id ${locataire_id})` });
 
     // Auto-create locataire if requested
     if (req.body.create_locataire && !locataire_id && req.body.nom_locataire) {
@@ -287,6 +300,14 @@ router.put('/:id', requireAuth, NO_TECH, (req, res) => {
     const data = load();
     const idx = data.sejours.findIndex(s => s.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
+
+    // Intégrité référentielle + anti-XSS (mêmes règles qu'à la création)
+    if (typeof locataire === 'string' && /[<>]/.test(locataire))
+        return res.status(400).json({ error: 'Le nom ne peut pas contenir < ou >' });
+    if (unit_id && !data.units.some(u => u.id === Number(unit_id)))
+        return res.status(400).json({ error: `Appartement introuvable (unit_id ${unit_id})` });
+    if (locataire_id && !data.locataires.some(l => l.id === Number(locataire_id)))
+        return res.status(400).json({ error: `Locataire introuvable (locataire_id ${locataire_id})` });
 
     const cautMontant = caution_montant !== undefined ? Number(caution_montant) : data.sejours[idx].caution_montant;
     // If caution amount changes from 0 to >0, set status to EN_ATTENTE unless already set
@@ -511,9 +532,11 @@ router.get('/:id/quittance', requireAuth, NO_TECH, (req, res) => {
             const couvert = Math.min(remaining, montantMensuel);
             const pct = Math.round((couvert / montantMensuel) * 100);
 
+            // Format local (pas toISOString : en UTC+, la date reculerait d'un jour)
+            const localYMD = dt => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
             periodes_couvertes.push({
-                debut: periodStart.toISOString().slice(0, 10),
-                fin: periodEnd.toISOString().slice(0, 10),
+                debut: localYMD(periodStart),
+                fin: localYMD(periodEnd),
                 label: `${periodStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })} — ${periodEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`,
                 montant_du: montantMensuel,
                 montant_couvert: couvert,

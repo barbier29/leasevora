@@ -7,6 +7,11 @@ const { requireRole, denyRoles } = require('../middleware/auth');
 const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE', 'AGENT');
 const NO_TECH = denyRoles('TECHNICIEN');
 
+// Anti-XSS stocké : les noms sont affichés en innerHTML dans l'app et sur les
+// pages publiques — on refuse < et > à la source plutôt que d'espérer que
+// chaque page échappe correctement.
+const hasHtml = s => typeof s === 'string' && /[<>]/.test(s);
+
 router.get('/', NO_TECH, (req, res) => {
     const data = load();
     res.json([...data.locataires].sort((a, b) => a.nom.localeCompare(b.nom)));
@@ -27,6 +32,7 @@ router.get('/:id', NO_TECH, (req, res) => {
 router.post('/', MGR, (req, res) => {
     const { nom, prenom, email, telephone, num_piece_identite, type_piece, caution, notes } = req.body;
     if (!nom) return res.status(400).json({ error: 'nom requis' });
+    if (hasHtml(nom) || hasHtml(prenom)) return res.status(400).json({ error: 'Le nom ne peut pas contenir < ou >' });
     const data = load();
     const l = {
         id: nextId(data, 'locataires'),
@@ -47,6 +53,7 @@ router.post('/', MGR, (req, res) => {
 
 router.put('/:id', MGR, (req, res) => {
     const { nom, prenom, email, telephone, num_piece_identite, type_piece, caution, notes } = req.body;
+    if (hasHtml(nom) || hasHtml(prenom)) return res.status(400).json({ error: 'Le nom ne peut pas contenir < ou >' });
     const data = load();
     const idx = data.locataires.findIndex(l => l.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });

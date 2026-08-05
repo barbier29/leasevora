@@ -3,6 +3,7 @@ const router = express.Router();
 const { load, save, nextId } = require('../store');
 const { requireRole } = require('../middleware/auth');
 
+const hasHtml = s => typeof s === 'string' && /[<>]/.test(s);
 const MGR = requireRole('PROPRIETAIRE', 'GESTIONNAIRE');
 
 function withPropName(unit, data) {
@@ -32,6 +33,7 @@ router.post('/', MGR, (req, res) => {
     const { property_id, label, status, expected_rent, type, nb_pieces, surface, etage, description,
             nb_chambres, nb_sdb, meuble, balcon, cave, parking_inclus } = req.body;
     if (!property_id || !label) return res.status(400).json({ error: 'property_id et label requis' });
+    if (hasHtml(label)) return res.status(400).json({ error: 'Le label ne peut pas contenir < ou >' });
     const data = load();
     const unit = {
         id: nextId(data, 'units'),
@@ -60,6 +62,7 @@ router.post('/', MGR, (req, res) => {
 router.put('/:id', MGR, (req, res) => {
     const { label, status, expected_rent, type, nb_pieces, surface, etage, description,
             nb_chambres, nb_sdb, meuble, balcon, cave, parking_inclus } = req.body;
+    if (hasHtml(label)) return res.status(400).json({ error: 'Le label ne peut pas contenir < ou >' });
     const data = load();
     const idx = data.units.findIndex(u => u.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });

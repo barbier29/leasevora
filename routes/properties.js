@@ -28,6 +28,7 @@ router.get('/:id', (req, res) => {
 // POST create (PROPRIETAIRE + GESTIONNAIRE)
 router.post('/', MGR, (req, res) => {
     const { name, type, address, solde_initial_caisse, nb_etages, annee_construction, surface_totale, description } = req.body;
+    if (hasHtml(name)) return res.status(400).json({ error: 'Le nom ne peut pas contenir < ou >' });
     if (!name || !type) return res.status(400).json({ error: 'name et type requis' });
 
     const data = load();
@@ -57,6 +58,7 @@ router.post('/', MGR, (req, res) => {
 // PUT update (PROPRIETAIRE + GESTIONNAIRE)
 router.put('/:id', MGR, (req, res) => {
     const { name, address, solde_initial_caisse, nb_etages, annee_construction, surface_totale, description } = req.body;
+    if (hasHtml(name)) return res.status(400).json({ error: 'Le nom ne peut pas contenir < ou >' });
     const data = load();
     const id = Number(req.params.id);
     const idx = data.properties.findIndex(p => p.id === id);
