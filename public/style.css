@@ -1651,6 +1651,13 @@ textarea.form-control {
   .main-content {
     margin-left: 0;
     flex: 1;
+    /* min-width:0 est INDISPENSABLE : sans lui un flex item garde
+       min-width:auto et s'élargit à la taille de son contenu (un tableau
+       large pousse la colonne à 690px dans un écran de 375px), et le
+       débordement est rogné — les dernières colonnes et leurs boutons
+       deviennent inatteignables au lieu de défiler. */
+    min-width: 0;
+    width: 100%;
     height: 100vh;
     display: flex;
     flex-direction: column;
@@ -1658,9 +1665,16 @@ textarea.form-control {
 
   /* Page content : padding réduit + safe area bas */
   #page-content {
-    padding: 20px 16px calc(32px + env(safe-area-inset-bottom));
+    padding: 16px 14px calc(32px + env(safe-area-inset-bottom));
     flex: 1;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: hidden; /* rien ne déborde de la page : chaque tableau défile dans sa carte */
   }
+
+  /* Titres : échelle adaptée au téléphone */
+  .page-title { font-size: 22px; line-height: 1.25; }
+  .page-subtitle { font-size: 13px; }
 
   /* Page header : empiler sur petits écrans */
   .page-header {
@@ -1691,10 +1705,12 @@ textarea.form-control {
     font-size: 24px;
   }
 
-  /* Cards avec tables : scroll horizontal */
+  /* La carte ne défile PAS : sinon son contenu non tabulaire (onglets,
+     filtres, recherche) s'élargirait avec le tableau et sortirait de
+     l'écran. Le défilement est confiné au tableau, plus bas. */
   .card {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-x: clip;
+    max-width: 100%;
   }
 
   /* Masquer la scrollbar native sur iOS pour un look natif */
@@ -1702,12 +1718,38 @@ textarea.form-control {
     display: none;
   }
 
-  /* Tables : scroll interne propre */
-  .card > table {
+  /* Tables : le TABLEAU est son propre conteneur de défilement.
+     Si on faisait défiler la carte à la place, tout son contenu (barres
+     d'onglets, filtres…) pourrait s'élargir avec le tableau et sortir de
+     l'écran. display:block + overflow-x isole le défilement au tableau ;
+     les colonnes restent alignées via la boîte de tableau anonyme. */
+  .card > table,
+  .card table {
     display: block;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    min-width: 500px;
+    max-width: 100%;
+  }
+  .card table::-webkit-scrollbar { display: none; }
+
+  /* Cellules : pas de retour à la ligne sauvage sur les colonnes courtes */
+  .card table th,
+  .card table td {
+    white-space: nowrap;
+  }
+  /* …sauf la 1re colonne (noms), qui peut respirer sur 2 lignes */
+  .card table td:first-child {
+    white-space: normal;
+    min-width: 120px;
+  }
+
+  /* Indice visuel : dégradé au bord droit tant qu'il reste à faire défiler */
+  .card table {
+    background-image: linear-gradient(to left, rgba(0,0,0,.05), rgba(0,0,0,0) 24px);
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: 24px 100%;
+    background-attachment: local;
   }
 
   /* Boutons header : pleine largeur */
@@ -1843,15 +1885,45 @@ textarea.form-control {
    ═══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 480px) {
 
-  /* Stat grid : 1 colonne */
+  /* Stat grid : 2 colonnes compactes.
+     En 1 colonne, 6 indicateurs imposaient 1200px de défilement pour lire
+     6 chiffres — le tableau de bord devenait illisible d'un coup d'œil. */
   .stat-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .stat-card {
+    padding: 12px 12px 14px;
+  }
+  .stat-label {
+    font-size: 10.5px;
+    letter-spacing: .03em;
+  }
+  .stat-value {
+    font-size: 19px;
+    line-height: 1.2;
+    word-break: break-word; /* « 200 000 FCFA » ne doit pas déborder de sa carte */
   }
 
   /* Page content : padding minimal */
   #page-content {
-    padding: 16px 12px;
+    padding: 14px 12px calc(28px + env(safe-area-inset-bottom));
   }
+
+  /* Mini-bilans des fenêtres (Total dû / Payé / Solde restant…) : sur 3
+     colonnes de ~100px, « 200 000 FCFA » se coupait en deux lignes. Ces
+     blocs sont générés avec des styles en ligne dans les pages, d'où le
+     !important — seule façon de les reprendre depuis la feuille de style. */
+  #modal-body [style*="grid-template-columns"] {
+    gap: 8px !important;
+  }
+  #modal-body [style*="font-size:16px"] {
+    font-size: 13.5px !important;
+  }
+  #modal-body [style*="font-size:18px"] {
+    font-size: 15px !important;
+  }
+
 
   /* Tableaux : taille réduite */
   td, thead th {
@@ -2757,3 +2829,71 @@ textarea.form-control {
 .stat-trend.up   { color: #059669; }
 .stat-trend.down { color: #dc2626; }
 .badge-green  { background:rgba(5,150,105,0.1);   color:var(--green); border:1px solid rgba(5,150,105,0.22); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AJUSTEMENTS MOBILE — EN FIN DE FICHIER (obligatoire)
+   Les styles de composants (.suivi-*, .fin-*, .client-row…) sont définis
+   plus haut mais APRÈS les media queries générales. Une media query
+   n'ajoute aucune priorité : à spécificité égale, c'est la dernière règle
+   du fichier qui gagne. Ces ajustements doivent donc rester ici, tout en bas.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+
+  /* Suivi Paiements : filtres empilés, onglets défilants ------------------- */
+  .suivi-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .suivi-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    /* sans min-width:0, un flex item refuse de descendre sous la largeur de
+       son contenu : il déborde au lieu de défiler. width:100% + align-self
+       forcent en plus la largeur du parent, quel que soit son align-items. */
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    align-self: stretch;
+  }
+  .suivi-tabs::-webkit-scrollbar { display: none; }
+  .suivi-tab {
+    white-space: nowrap;
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    font-size: 12.5px;
+  }
+  .suivi-search {
+    width: 100%;
+    min-width: 0;
+    flex: none;
+  }
+
+  /* Tableaux : défilement confiné au tableau, jamais à la page ------------- */
+  .card {
+    overflow-x: clip;
+    max-width: 100%;
+  }
+  .card table,
+  .suivi-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+    /* dégradé au bord droit : indique qu'il reste du contenu à faire défiler */
+    background-image: linear-gradient(to left, rgba(0,0,0,.05), rgba(0,0,0,0) 24px);
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: 24px 100%;
+    background-attachment: local;
+  }
+  .card table::-webkit-scrollbar { display: none; }
+  .card table th,
+  .card table td { white-space: nowrap; }
+  .card table td:first-child { white-space: normal; min-width: 118px; }
+
+  /* Grilles internes des pages (mini-bilans, entêtes) ---------------------- */
+  .fin-kpi-trio,
+  .dash-grid-2 { min-width: 0; }
+}
