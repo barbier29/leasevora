@@ -409,16 +409,16 @@ function migrateVerifTokens() {
     }
     // ── Purge ponctuelle de comptes de test morts (à retirer après exécution
     // en production). Supprime les utilisateurs listés ET leur entreprise.
-    const DEAD_LOGINS = ['RCB', 'test.deploy.0806'];
-    const deadUsers = data.users.filter(u => DEAD_LOGINS.includes(u.login));
+    const DEAD_LOGINS = ['rcb', 'test.deploy.0806']; // comparaison insensible à la casse
+    const deadUsers = data.users.filter(u => DEAD_LOGINS.includes(u.login.toLowerCase()));
     if (deadUsers.length > 0) {
         const deadOrgIds = new Set(deadUsers.map(u => String(u.org_id)));
         // Sécurité : ne supprimer une org que si AUCUN utilisateur hors-liste n'y vit
         for (const oid of [...deadOrgIds]) {
-            const habitants = data.users.filter(u => String(u.org_id) === oid && !DEAD_LOGINS.includes(u.login));
+            const habitants = data.users.filter(u => String(u.org_id) === oid && !DEAD_LOGINS.includes(u.login.toLowerCase()));
             if (habitants.length > 0) deadOrgIds.delete(oid);
         }
-        data.users = data.users.filter(u => !DEAD_LOGINS.includes(u.login));
+        data.users = data.users.filter(u => !DEAD_LOGINS.includes(u.login.toLowerCase()));
         for (const oid of deadOrgIds) delete data.orgs[oid];
         changed++;
         console.log(`🧹 Purge : ${deadUsers.length} compte(s) de test supprimé(s) (${deadUsers.map(u => u.login).join(', ')}) + ${deadOrgIds.size} entreprise(s)`);

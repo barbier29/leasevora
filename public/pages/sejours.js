@@ -572,7 +572,7 @@ async function renderSejoursPage(container) {
 
     openModal(`
       <div class="modal-title">${isEdit ? 'Modifier le séjour' : 'Nouveau séjour'}</div>
-      <form id="sej-form">
+      <form id="sej-form" novalidate>
         <!-- Section locataire -->
         <div style="background:var(--bg-2);border-radius:8px;padding:14px;margin-bottom:16px;border:1px solid var(--border)">
           <div style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:12px">LOCATAIRE</div>
@@ -702,9 +702,10 @@ async function renderSejoursPage(container) {
             </div>
           </label>
         </div>
+        <div id="sej-form-error" style="display:none;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.5);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;color:var(--red);font-size:13.5px;font-weight:600"></div>
         <div class="form-actions">
           <button type="button" class="btn btn-ghost" onclick="closeModal()">Annuler</button>
-          <button type="submit" class="btn btn-primary">${isEdit ? 'Enregistrer' : 'Créer le séjour'}</button>
+          <button type="submit" class="btn btn-primary" id="sej-submit-btn">${isEdit ? 'Enregistrer' : 'Créer le séjour'}</button>
         </div>
       </form>
     `);
@@ -763,6 +764,33 @@ async function renderSejoursPage(container) {
     document.getElementById('sej-form').addEventListener('submit', async e => {
       e.preventDefault();
 
+      // ── Validation explicite et VISIBLE ──
+      // La validation native du navigateur est muette quand le champ requis
+      // est hors écran dans un modal scrollé (Safari iOS) : l'utilisateur
+      // clique et « rien ne se passe ». Ici : bandeau rouge près du bouton
+      // + défilement vers le premier champ manquant.
+      const manquants = [];
+      const champErr = [];
+      if (!document.getElementById('f-locid').value && !document.getElementById('f-nom')?.value?.trim()) {
+        manquants.push('le nom du locataire (ou choisissez-en un existant)'); champErr.push('f-nom');
+      }
+      if (!document.getElementById('f-unit').value) { manquants.push("l'appartement"); champErr.push('f-unit'); }
+      if (!document.getElementById('f-montant').value || parseFloat(document.getElementById('f-montant').value) <= 0) {
+        manquants.push('le montant'); champErr.push('f-montant');
+      }
+      if (!document.getElementById('f-debut').value) { manquants.push("la date d'arrivée"); champErr.push('f-debut'); }
+      const errBox = document.getElementById('sej-form-error');
+      ['f-nom','f-unit','f-montant','f-debut'].forEach(id => { const el = document.getElementById(id); if (el) el.style.borderColor = ''; });
+      if (manquants.length) {
+        errBox.textContent = '⚠️ Il manque : ' + manquants.join(', ') + '.';
+        errBox.style.display = 'block';
+        champErr.forEach(id => { const el = document.getElementById(id); if (el) el.style.borderColor = 'var(--red)'; });
+        const first = document.getElementById(champErr[0]);
+        if (first) { first.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        return;
+      }
+      errBox.style.display = 'none';
+
       // Validation : date_fin >= date_debut
       const debutVal = document.getElementById('f-debut').value;
       const finVal = document.getElementById('f-fin').value;
@@ -810,6 +838,10 @@ async function renderSejoursPage(container) {
         caution_montant: parseFloat(document.getElementById('f-caution').value) || 0,
         caution_date: document.getElementById('f-caution-date').value || null,
       };
+      const submitBtn = document.getElementById('sej-submit-btn');
+      const btnLabel = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Enregistrement…';
       try {
         let result;
         if (isEdit) { result = await api(`/sejours/${sej.id}`, { method: 'PUT', body }); toast('Séjour modifié'); }
