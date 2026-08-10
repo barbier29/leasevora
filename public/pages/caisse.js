@@ -199,7 +199,8 @@ async function renderCaissePage(container) {
       </div>
 
       <!-- Soldes par compte -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:24px">
+      <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-3);margin-bottom:8px">💰 Comptes de l'entreprise — la « grande caisse »</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:8px">
         ${comptes.map(c => `
           <div class="stat-card" style="cursor:pointer;border:2px solid ${_compteFilter == c.id ? 'var(--accent)' : 'transparent'}" data-compte-id="${c.id}">
             <div class="stat-label" style="display:flex;align-items:center;gap:5px">
@@ -224,6 +225,7 @@ async function renderCaissePage(container) {
           </div>
         </div>
       </div>
+      <div style="font-size:11.5px;color:var(--text-3);margin-bottom:24px">Chaque encaissement et chaque dépense passe par l'un de ces comptes, quel que soit l'immeuble concerné. Les sections ci-dessous sont des vues d'analyse par bien.</div>
 
       ${selectedCompte && selectedCompte.iban ? `
       <div class="card" style="padding:14px 18px;margin-bottom:20px;display:flex;flex-wrap:wrap;gap:20px;align-items:center">
@@ -246,9 +248,12 @@ async function renderCaissePage(container) {
           <div class="card" style="margin-bottom:24px">
             <div class="card-header"><div style="font-weight:700">${p.name}</div></div>
             <div style="padding:16px 20px;font-size:13px;color:var(--text-3)">
-              Aucune opération générale pour l'instant. Enregistrez ici les dépenses et recettes
-              de l'entreprise non liées à un immeuble (salaires, carburant, fournitures…) :
-              <b>Transactions → + Ajouter → Propriété : « 🏢 Générale »</b>.
+              Aucun frais général pour l'instant. Ce sont les dépenses et recettes non liées à un
+              immeuble précis (salaires, carburant, fournitures…) :
+              <b>Transactions → + Ajouter → Bien concerné : « 🏢 Frais général »</b>.
+              Une dépense liée à un immeuble sort aussi du compte de l'entreprise —
+              choisissez simplement l'immeuble dans « Bien concerné » pour qu'elle soit
+              comptée dans sa section.
             </div>
           </div>`;
         }

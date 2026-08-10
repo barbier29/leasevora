@@ -135,7 +135,7 @@ router.get('/', MGR, (req, res) => {
     const genIn  = generalCompteDetails.reduce((s, c) => s + c.total_in, 0);
     const genOut = generalCompteDetails.reduce((s, c) => s + c.total_out, 0);
     const general = {
-        id: null, name: '🏢 Général — toute l\'entreprise', type: 'GENERAL',
+        id: null, name: '🏢 Frais généraux — non rattachés à un bien', type: 'GENERAL',
         total_in: genIn, total_out: genOut, solde: genIn - genOut,
         comptes: generalCompteDetails,
     };

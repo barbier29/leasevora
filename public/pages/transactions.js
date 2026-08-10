@@ -152,7 +152,7 @@ async function renderTransactionsPage(container) {
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Compte *</label>
+            <label class="form-label">Compte — d'où sort / où entre l'argent *</label>
             <select class="form-control" id="f-compte">
             </select>
           </div>
@@ -183,11 +183,12 @@ async function renderTransactionsPage(container) {
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Propriété</label>
+            <label class="form-label">Bien concerné — pour le suivi par immeuble</label>
             <select class="form-control" id="f-prop">
-              <option value="">🏢 Générale (toute l'entreprise)</option>
+              <option value="">🏢 Frais général — aucun bien précis</option>
               ${props.map(p => `<option value="${p.id}" ${txn?.property_id == p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
             </select>
+            <div style="font-size:11px;color:var(--text-3);margin-top:4px">L'argent bouge toujours sur le compte choisi ci-dessus. Le bien sert à l'analyse : la dépense apparaîtra dans la caisse de cet immeuble.</div>
           </div>
         </div>
         <div class="form-group">
