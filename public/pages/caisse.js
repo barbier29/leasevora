@@ -166,6 +166,9 @@ async function renderCaissePage(container) {
 
   function render(data, props) {
     const { comptes, properties } = data;
+    // La section Général (transactions sans immeuble) se rend comme une propriété
+    const sections = (data.general && (data.general.total_in > 0 || data.general.total_out > 0))
+      ? [data.general, ...properties] : properties;
     const totalSolde = comptes.reduce((s, c) => s + c.solde, 0);
     const totalIn    = comptes.reduce((s, c) => s + c.total_in, 0);
     const totalOut   = comptes.reduce((s, c) => s + c.total_out, 0);
@@ -233,7 +236,7 @@ async function renderCaissePage(container) {
       <!-- Détail par propriété -->
       ${properties.length === 0 ? `
         <div class="empty-state"><div class="empty-icon">🏦</div><p>Aucune propriété trouvée.</p></div>
-      ` : properties.map(p => {
+      ` : sections.map(p => {
         const comptesActifs = p.comptes.filter(c => c.total_in > 0 || c.total_out > 0 || _compteFilter);
         if (!comptesActifs.length && !_compteFilter) return '';
         return `

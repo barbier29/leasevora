@@ -183,9 +183,9 @@ async function renderTransactionsPage(container) {
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Propriété *</label>
-            <select class="form-control" id="f-prop" required>
-              <option value="">Sélectionner…</option>
+            <label class="form-label">Propriété</label>
+            <select class="form-control" id="f-prop">
+              <option value="">🏢 Générale (toute l'entreprise)</option>
               ${props.map(p => `<option value="${p.id}" ${txn?.property_id == p.id ? 'selected' : ''}>${p.name}</option>`).join('')}
             </select>
           </div>
@@ -311,7 +311,7 @@ async function renderTransactionsPage(container) {
         compte_id: parseInt(document.getElementById('f-compte').value) || 1,
         amount: parseFloat(document.getElementById('f-amount').value),
         category_id: parseInt(document.getElementById('f-cat').value),
-        property_id: parseInt(document.getElementById('f-prop').value),
+        property_id: document.getElementById('f-prop').value ? parseInt(document.getElementById('f-prop').value) : null,
         unit_id: document.getElementById('f-unit').value ? parseInt(document.getElementById('f-unit').value) : null,
         sejour_id: document.getElementById('f-sejour').value ? Number(document.getElementById('f-sejour').value) : null,
         mode_paiement: document.getElementById('f-mode')?.value || null,

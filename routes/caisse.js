@@ -107,7 +107,40 @@ router.get('/', MGR, (req, res) => {
         };
     });
 
-    res.json({ comptes: comptesStats, properties: result });
+    // ── Section « Général » : transactions SANS immeuble (opérations de
+    // l'entreprise elle-même — salaires, carburant, frais de bureau…).
+    // Même structure qu'une propriété pour que le front la rende pareil.
+    const generalCompteDetails = comptesFiltered.map(c => {
+        let txns = data.transactions.filter(t => t.property_id == null && t.compte_id === c.id);
+        if (month) txns = txns.filter(t => t.date && t.date.startsWith(month));
+        const totalIn  = txns.filter(t => t.kind === 'IN').reduce((s, t) => s + t.amount, 0);
+        const totalOut = txns.filter(t => t.kind === 'OUT').reduce((s, t) => s + t.amount, 0);
+        const historique = txns
+            .map(t => {
+                const cat = data.categories.find(cat => cat.id === t.category_id) || {};
+                return { ...t, category_name: cat.name || '?', unit_label: null };
+            })
+            .sort((a, b) => a.date.localeCompare(b.date));
+        let running = 0;
+        const releve = historique.map(t => {
+            running += t.kind === 'IN' ? t.amount : -t.amount;
+            return { ...t, solde_apres: running };
+        }).reverse();
+        return {
+            compte_id: c.id, compte_nom: c.nom, compte_type: c.type,
+            total_in: totalIn, total_out: totalOut,
+            releve, par_appartement: [],
+        };
+    });
+    const genIn  = generalCompteDetails.reduce((s, c) => s + c.total_in, 0);
+    const genOut = generalCompteDetails.reduce((s, c) => s + c.total_out, 0);
+    const general = {
+        id: null, name: '🏢 Général — toute l\'entreprise', type: 'GENERAL',
+        total_in: genIn, total_out: genOut, solde: genIn - genOut,
+        comptes: generalCompteDetails,
+    };
+
+    res.json({ comptes: comptesStats, general, properties: result });
 });
 
 module.exports = router;

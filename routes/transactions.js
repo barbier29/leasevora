@@ -18,7 +18,7 @@ function enrich(t, data) {
         ...t,
         category_name: cat.name || '?',
         category_kind: cat.kind || '?',
-        property_name: prop.name || '?',
+        property_name: t.property_id == null ? '🏢 Général' : (prop.name || '?'),
         unit_label: unit ? unit.label : null,
     };
 }
@@ -73,9 +73,9 @@ router.post('/', MGR, (req, res) => {
             }
         }
     }
-    // property_id obligatoire sauf si la transaction est liée à un séjour
-    if (!resolvedPropertyId && !sejour_id)
-        return res.status(400).json({ error: 'property_id requis (ou lier à un séjour)' });
+    // property_id optionnel : une transaction sans immeuble est une opération
+    // GÉNÉRALE de l'entreprise (salaire du gérant, carburant, frais de bureau…).
+    // Elle apparaît dans la trésorerie globale et la section « Général » de la Caisse.
 
     const txn = {
         id: nextId(data, 'transactions'),
@@ -87,11 +87,19 @@ router.post('/', MGR, (req, res) => {
         property_id: resolvedPropertyId,
         unit_id: resolvedUnitId,
         sejour_id: sejour_id ? Number(sejour_id) : null,
-        compte_id: compte_id ? Number(compte_id) : (kind === 'IN' ? 1 : 1),
+        // Compte par défaut : la première caisse ACTIVE de l'entreprise — jamais
+        // l'id 1 en dur (chaque entreprise a ses propres ids de comptes).
+        compte_id: (() => {
+            if (compte_id) return Number(compte_id);
+            const c = (data.comptes || []).find(c => c.type === 'CAISSE' && c.actif) || (data.comptes || [])[0];
+            return c ? c.id : 1;
+        })(),
         source: (() => {
             if (source) return source;
-            // Déduire depuis le compte (utiliser data déjà chargé)
-            const c = (data.comptes || []).find(c => c.id === (compte_id ? Number(compte_id) : 1));
+            const cid = compte_id ? Number(compte_id) : null;
+            const c = cid
+                ? (data.comptes || []).find(c => c.id === cid)
+                : ((data.comptes || []).find(c => c.type === 'CAISSE' && c.actif) || (data.comptes || [])[0]);
             return c?.type || 'CAISSE';
         })(),
         mode_paiement: mode_paiement || null,
@@ -149,7 +157,7 @@ router.put('/:id', MGR, (req, res) => {
         mode_paiement: mode_paiement !== undefined ? (mode_paiement || null) : (prev.mode_paiement || null),
         reference_paiement: reference_paiement !== undefined ? (reference_paiement || null) : (prev.reference_paiement || null),
         category_id: Number(category_id),
-        property_id: Number(property_id),
+        property_id: property_id ? Number(property_id) : null, // null = générale entreprise
         unit_id: unit_id ? Number(unit_id) : null,
         sejour_id: sejour_id ? Number(sejour_id) : (data.transactions[idx].sejour_id || null),
         compte_id: compte_id ? Number(compte_id) : (data.transactions[idx].compte_id || 1),

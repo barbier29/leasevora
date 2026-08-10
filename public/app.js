@@ -96,10 +96,26 @@ async function apiRaw(path, opts = {}) {
     const token = localStorage.getItem('pm_token');
     const headers = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    const r = await fetch(API_BASE + path, { ...opts, headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
-    if (r.status === 401) { showLogin(); throw new Error('Session expirée'); }
-    if (!r.ok) { const e = await r.json().catch(() => { }); throw new Error(e?.error || `HTTP ${r.status}`); }
-    return r.json();
+
+    // Si le serveur (plan gratuit) sortait de veille, la première requête peut
+    // prendre 30-60 s. Sans message, l'utilisateur croit que l'app est cassée
+    // et abandonne — c'est le « ça ne marche pas » des premiers testeurs.
+    const slowTimer = setTimeout(() => {
+        if (!window.__wakeToastShown) {
+            window.__wakeToastShown = true;
+            window.toast && toast('⏳ Le serveur se réveille… encore quelques secondes, ne fermez pas la page.', 'success');
+            setTimeout(() => { window.__wakeToastShown = false; }, 45000);
+        }
+    }, 3500);
+
+    try {
+        const r = await fetch(API_BASE + path, { ...opts, headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+        if (r.status === 401) { showLogin(); throw new Error('Session expirée'); }
+        if (!r.ok) { const e = await r.json().catch(() => { }); throw new Error(e?.error || `HTTP ${r.status}`); }
+        return r.json();
+    } finally {
+        clearTimeout(slowTimer);
+    }
 }
 window.api = apiRaw;
 
@@ -169,6 +185,9 @@ window.canAccess = canAccess;
 
 // ── Login screen ───────────────────────────────────────────────────────────
 function showLogin(errorMsg) {
+    // Préchauffage : réveiller le serveur pendant que l'utilisateur tape ses
+    // identifiants — la connexion sera instantanée au lieu d'attendre 50 s.
+    fetch(API_BASE + '/health').catch(() => {});
     localStorage.removeItem('pm_token');
     localStorage.removeItem('pm_user');
     window.CURRENT_USER = null;

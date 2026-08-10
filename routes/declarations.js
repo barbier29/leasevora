@@ -50,17 +50,24 @@ router.post('/:id/valider', MGR, (req, res) => {
     const sejour = data.sejours.find(s => s.id === d.sejour_id);
     const unit = sejour ? data.units.find(u => u.id === sejour.unit_id) : null;
 
+    // Les ids de catégorie/compte diffèrent d'une entreprise à l'autre
+    // (chaque org a ses propres seeds) — ne JAMAIS coder 1 en dur.
+    const catLoyer = data.categories.find(c => c.name === 'Loyer mensuel')
+        || data.categories.find(c => c.kind === 'IN') || null;
+    const compteCaisse = data.comptes.find(c => c.type === 'CAISSE' && c.actif)
+        || data.comptes.find(c => c.actif) || null;
+
     const txn = {
         id: nextId(data, 'transactions'),
         date: d.date,
         description: 'Paiement déclaré par le locataire' + (d.commentaire ? ` — ${d.commentaire}` : ''),
         kind: 'IN',
         amount: d.montant,
-        category_id: 1, // Loyer mensuel
+        category_id: catLoyer ? catLoyer.id : null,
         property_id: unit ? unit.property_id : null,
         unit_id: sejour ? sejour.unit_id : null,
         sejour_id: d.sejour_id,
-        compte_id: 1,
+        compte_id: compteCaisse ? compteCaisse.id : 1,
         source: 'CAISSE',
         mode_paiement: d.mode_paiement || null,
         reference_paiement: d.reference_paiement || null,

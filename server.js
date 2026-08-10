@@ -33,6 +33,9 @@ app.use((_req, res, next) => {
     next();
 });
 
+// Santé du service — public, utilisé par le keep-alive et tout monitoring
+app.get('/api/health', (_req, res) => res.json({ ok: true }));
+
 // Public routes (no auth required)
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/invite', require('./routes/invite')); // gère son propre auth en interne
@@ -122,4 +125,19 @@ app.listen(PORT, async () => {
     // 4. Doter les anciens paiements d'un token de vérification (une fois)
     migrateVerifTokens();
     console.log(`\n🏢  Leasevora disponible sur http://localhost:${PORT}\n`);
+
+    // ── Keep-alive : empêcher l'endormissement du plan gratuit Render ──────
+    // Sans ça, le service s'endort après 15 min d'inactivité et la première
+    // action d'un utilisateur traîne 50 s ou échoue — vécu par les testeurs
+    // comme « ça ne marche pas ». Le plan Free offre 750 h/mois : assez pour
+    // tourner 24h/24. Bonus : l'activité continue garde aussi la base
+    // Supabase éveillée (le push périodique tourne tant que le serveur vit).
+    // RENDER_EXTERNAL_URL est fournie automatiquement par Render.
+    const SELF_URL = process.env.RENDER_EXTERNAL_URL;
+    if (SELF_URL) {
+        setInterval(() => {
+            fetch(`${SELF_URL}/api/health`).catch(() => {});
+        }, 10 * 60 * 1000);
+        console.log(`⏰ Keep-alive actif : ping de ${SELF_URL} toutes les 10 min`);
+    }
 });
