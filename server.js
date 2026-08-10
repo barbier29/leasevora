@@ -36,6 +36,23 @@ app.use((_req, res, next) => {
 // Santé du service — public, utilisé par le keep-alive et tout monitoring
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
+// Télémétrie d'erreurs front — public, rate-limité. Quand un téléphone d'un
+// utilisateur plante en silence (« rien ne se passe quand je clique »), l'erreur
+// remonte ici et devient visible dans les logs Render au lieu de rester invisible.
+const clientErrHits = new Map();
+app.post('/api/client-error', (req, res) => {
+    const ip = req.ip || req.socket.remoteAddress || '?';
+    const now = Date.now();
+    const rec = clientErrHits.get(ip) || { count: 0, resetAt: now + 60000 };
+    if (now >= rec.resetAt) { rec.count = 0; rec.resetAt = now + 60000; }
+    if (rec.count >= 10) return res.status(429).json({});
+    rec.count += 1;
+    clientErrHits.set(ip, rec);
+    const { message, source, line, ua, page } = req.body || {};
+    console.error(`📱 ERREUR CLIENT [${(ua || '?').toString().slice(0, 120)}] page=${(page || '?').toString().slice(0, 60)} : ${(message || '?').toString().slice(0, 300)} @ ${(source || '?').toString().slice(0, 80)}:${line || '?'}`);
+    res.json({ ok: true });
+});
+
 // Public routes (no auth required)
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/invite', require('./routes/invite')); // gère son propre auth en interne

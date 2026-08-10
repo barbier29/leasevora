@@ -166,9 +166,10 @@ async function renderCaissePage(container) {
 
   function render(data, props) {
     const { comptes, properties } = data;
-    // La section Général (transactions sans immeuble) se rend comme une propriété
-    const sections = (data.general && (data.general.total_in > 0 || data.general.total_out > 0))
-      ? [data.general, ...properties] : properties;
+    // La caisse « Général — toute l'entreprise » est TOUJOURS visible, même à
+    // zéro : l'utilisateur doit voir qu'elle existe pour penser à s'en servir
+    // (salaires, carburant, frais non liés à un immeuble).
+    const sections = data.general ? [data.general, ...properties] : properties;
     const totalSolde = comptes.reduce((s, c) => s + c.solde, 0);
     const totalIn    = comptes.reduce((s, c) => s + c.total_in, 0);
     const totalOut   = comptes.reduce((s, c) => s + c.total_out, 0);
@@ -238,7 +239,19 @@ async function renderCaissePage(container) {
         <div class="empty-state"><div class="empty-icon">🏦</div><p>Aucune propriété trouvée.</p></div>
       ` : sections.map(p => {
         const comptesActifs = p.comptes.filter(c => c.total_in > 0 || c.total_out > 0 || _compteFilter);
-        if (!comptesActifs.length && !_compteFilter) return '';
+        // La caisse Général reste visible même sans mouvement (invitation à s'en servir)
+        if (!comptesActifs.length && !_compteFilter && p.type !== 'GENERAL') return '';
+        if (!comptesActifs.length && p.type === 'GENERAL') {
+          return `
+          <div class="card" style="margin-bottom:24px">
+            <div class="card-header"><div style="font-weight:700">${p.name}</div></div>
+            <div style="padding:16px 20px;font-size:13px;color:var(--text-3)">
+              Aucune opération générale pour l'instant. Enregistrez ici les dépenses et recettes
+              de l'entreprise non liées à un immeuble (salaires, carburant, fournitures…) :
+              <b>Transactions → + Ajouter → Propriété : « 🏢 Générale »</b>.
+            </div>
+          </div>`;
+        }
         return `
         <div class="card" style="margin-bottom:24px">
           <div class="card-header" style="flex-wrap:wrap;gap:12px">

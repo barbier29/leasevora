@@ -16,7 +16,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=17" />
+  <link rel="stylesheet" href="style.css?v=18" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -89,23 +89,61 @@
   </div>
   <div id="toast-container"></div>
 
-  <script src="pages/dashboard.js?v=17"></script>
-  <script src="pages/properties.js?v=17"></script>
-  <script src="pages/units.js?v=17"></script>
-  <script src="pages/locataires.js?v=17"></script>
-  <script src="pages/sejours.js?v=17"></script>
-  <script src="pages/calendrier.js?v=17"></script>
-  <script src="pages/transactions.js?v=17"></script>
-  <script src="pages/caisse.js?v=17"></script>
-  <script src="pages/comptes.js?v=17"></script>
-  <script src="pages/finance.js?v=17"></script>
-  <script src="pages/travaux.js?v=17"></script>
-  <script src="pages/compteurs.js?v=17"></script>
-  <script src="pages/categories.js?v=17"></script>
-  <script src="pages/users.js?v=17"></script>
-  <script src="pages/notes.js?v=17"></script>
-  <script src="pages/paiements.js?v=17"></script>
-  <script src="app.js?v=17"></script>
+  <script>
+    // ── Filet de sécurité — VOLONTAIREMENT en JavaScript ancien (ES5) ──
+    // Sur un téléphone au navigateur trop vieux, les scripts modernes plantent
+    // au chargement : aucun bouton ne répond, sans aucun message. Ce bloc-ci,
+    // lui, s'exécute partout : il capte l'erreur, l'affiche à l'utilisateur,
+    // et l'envoie au serveur pour qu'on la voie dans les logs.
+    (function () {
+      var reported = 0;
+      function bandeau(msg) {
+        var b = document.getElementById('js-error-banner');
+        if (!b) {
+          b = document.createElement('div');
+          b.id = 'js-error-banner';
+          b.setAttribute('style', 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#b91c1c;color:#fff;padding:10px 14px;font:13px/1.4 sans-serif;text-align:center');
+          document.body ? document.body.appendChild(b) : document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(b); });
+        }
+        b.innerHTML = msg;
+      }
+      window.onerror = function (message, source, line) {
+        if (reported < 3) {
+          reported++;
+          try {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/client-error', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify({ message: String(message), source: String(source || ''), line: line || 0, ua: navigator.userAgent, page: location.hash || '/' }));
+          } catch (e) {}
+        }
+        // Erreur de syntaxe au chargement = navigateur trop ancien
+        if (String(message).indexOf('SyntaxError') !== -1 || String(message).toLowerCase().indexOf('unexpected token') !== -1) {
+          bandeau('⚠️ Votre navigateur est trop ancien pour Leasevora.<br>Ouvrez le site avec <b>Chrome à jour</b> (pas Opera Mini ni le mode économie de données).');
+        } else {
+          bandeau('⚠️ Une erreur technique est survenue : ' + String(message).slice(0, 120) + '<br>Rechargez la page. Si ça continue, signalez-le.');
+        }
+        return false;
+      };
+    })();
+  </script>
+  <script src="pages/dashboard.js?v=18"></script>
+  <script src="pages/properties.js?v=18"></script>
+  <script src="pages/units.js?v=18"></script>
+  <script src="pages/locataires.js?v=18"></script>
+  <script src="pages/sejours.js?v=18"></script>
+  <script src="pages/calendrier.js?v=18"></script>
+  <script src="pages/transactions.js?v=18"></script>
+  <script src="pages/caisse.js?v=18"></script>
+  <script src="pages/comptes.js?v=18"></script>
+  <script src="pages/finance.js?v=18"></script>
+  <script src="pages/travaux.js?v=18"></script>
+  <script src="pages/compteurs.js?v=18"></script>
+  <script src="pages/categories.js?v=18"></script>
+  <script src="pages/users.js?v=18"></script>
+  <script src="pages/notes.js?v=18"></script>
+  <script src="pages/paiements.js?v=18"></script>
+  <script src="app.js?v=18"></script>
 
   <script>
     // Mise à jour automatique de l'application.
