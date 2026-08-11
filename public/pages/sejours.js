@@ -145,12 +145,12 @@ async function renderSejoursPage(container) {
       row.addEventListener('click', e => {
         if (e.target.closest('button')) return;
         const s = sejours.find(x => x.id == row.dataset.id);
-        if (s) openSejourDetail(s, units, locs, () => load());
+        if (s) openSejourDetail(s, units, props, locs, () => load());
       });
     });
   }
 
-  async function openSejourDetail(s, units, locs, onRefresh) {
+  async function openSejourDetail(s, units, props, locs, onRefresh) {
     const loc = locs.find(l => l.id === s.locataire_id);
     const paiSt = PAIEMENT_STATUTS[s.statut_paiement || 'EN_ATTENTE'];
     const soldeRestant = s.solde_restant || 0;
@@ -286,7 +286,7 @@ async function renderSejoursPage(container) {
 
     document.getElementById('edit-sej-det').addEventListener('click', () => {
       closeModal();
-      showForm(s, units, [], locs);
+      showForm(s, units, props, locs);
     });
 
     document.getElementById('del-sej-det').addEventListener('click', async () => {
@@ -309,7 +309,7 @@ async function renderSejoursPage(container) {
         closeModal();
         // pré-remplir le formulaire de création avec les données du séjour précédent
         const fakeNew = { ...data, id: null };
-        showForm(fakeNew, units, [], locs);
+        showForm(fakeNew, units, props, locs);
       } catch (e) { toast(e.message, 'error'); }
     });
 
