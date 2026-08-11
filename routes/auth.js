@@ -83,7 +83,7 @@ router.post('/login', (req, res) => {
     }
 
     const token = createToken();
-    const payload = { id: user.id, nom: user.nom, prenom: user.prenom, email: user.email, login: user.login, role: user.role, org_id: user.org_id || 1 };
+    const payload = { id: user.id, nom: user.nom, prenom: user.prenom, email: user.email, login: user.login, role: user.role, org_id: user.org_id || 1, permissions: user.permissions || [] };
     // AUDIT 1 — Stocker { user, createdAt } pour la gestion de l'expiration de session
     sessions.set(token, { user: payload, createdAt: Date.now() });
 
@@ -152,7 +152,7 @@ router.post('/signup', (req, res) => {
 
     // Connexion immédiate
     const token = createToken();
-    const payload = { id: user.id, nom: user.nom, prenom: user.prenom, email: user.email, login: user.login, role: user.role, org_id: orgId };
+    const payload = { id: user.id, nom: user.nom, prenom: user.prenom, email: user.email, login: user.login, role: user.role, org_id: orgId, permissions: [] };
     sessions.set(token, { user: payload, createdAt: Date.now() });
     res.status(201).json({ token, user: payload });
 });

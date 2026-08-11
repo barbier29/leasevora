@@ -105,7 +105,7 @@ router.get('/suivi', MGR, (req, res) => {
             id: loc.id,
             prenom: loc.prenom,
             nom: loc.nom,
-            tel: loc.tel || null,
+            tel: loc.telephone || null,
             email: loc.email || null,
             nb_sejours: enrichedSejours.length,
             total_du,

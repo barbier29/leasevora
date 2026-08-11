@@ -111,23 +111,25 @@ router.put('/:id', requireAuth, (req, res) => {
         });
     }
 
+    // Merge-safe : un champ absent de la requête est préservé (le formulaire
+    // d'édition n'envoie pas transaction_id → il était perdu à chaque édition)
     data.travaux[idx] = {
         ...prev,
-        property_id: Number(property_id),
-        unit_id: unit_id ? Number(unit_id) : null,
-        titre,
-        description: description || null,
-        date,
-        statut,
-        priorite,
+        property_id: property_id !== undefined ? Number(property_id) : prev.property_id,
+        unit_id: unit_id !== undefined ? (unit_id ? Number(unit_id) : null) : prev.unit_id,
+        titre: titre !== undefined ? titre : prev.titre,
+        description: description !== undefined ? (description || null) : prev.description,
+        date: date !== undefined ? date : prev.date,
+        statut: statut !== undefined ? statut : prev.statut,
+        priorite: priorite !== undefined ? priorite : prev.priorite,
         type_travail: type_travail || prev.type_travail || 'REPARATION',
-        prestataire: prestataire || null,
-        contact_prestataire: contact_prestataire || null,
-        montant_devis: montant_devis != null && montant_devis !== '' ? Number(montant_devis) : null,
-        montant_facture: montant_facture != null && montant_facture !== '' ? Number(montant_facture) : null,
-        transaction_id: transaction_id ? Number(transaction_id) : null,
-        date_fin_prevue: date_fin_prevue || null,
-        garantie_mois: garantie_mois ? Number(garantie_mois) : null,
+        prestataire: prestataire !== undefined ? (prestataire || null) : prev.prestataire,
+        contact_prestataire: contact_prestataire !== undefined ? (contact_prestataire || null) : prev.contact_prestataire,
+        montant_devis: montant_devis !== undefined ? (montant_devis !== '' && montant_devis != null ? Number(montant_devis) : null) : prev.montant_devis,
+        montant_facture: montant_facture !== undefined ? (montant_facture !== '' && montant_facture != null ? Number(montant_facture) : null) : prev.montant_facture,
+        transaction_id: transaction_id !== undefined ? (transaction_id ? Number(transaction_id) : null) : prev.transaction_id,
+        date_fin_prevue: date_fin_prevue !== undefined ? (date_fin_prevue || null) : prev.date_fin_prevue,
+        garantie_mois: garantie_mois !== undefined ? (garantie_mois ? Number(garantie_mois) : null) : prev.garantie_mois,
         historique,
         date_fin_reelle: statut === 'TERMINE' && !prev.date_fin_reelle
             ? new Date().toISOString().slice(0, 10)

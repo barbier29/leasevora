@@ -82,9 +82,20 @@ router.put('/:id', MGR, (req, res) => {
 router.delete('/:id', OWNER, (req, res) => {
     const data = scoped(load(), req.orgId);
     const id = Number(req.params.id);
+    // Cascade COMPLÈTE : supprimer un immeuble supprime tout son historique.
+    // Avant, les séjours/travaux/compteurs/notes restaient orphelins (« ? »
+    // partout, faux impayés au dashboard) pendant que les transactions,
+    // elles, disparaissaient — le pire des deux mondes.
+    const unitIds = new Set(data.units.filter(u => u.property_id === id).map(u => u.id));
+    const sejourIds = new Set(data.sejours.filter(s => unitIds.has(s.unit_id)).map(s => s.id));
     data.properties = data.properties.filter(p => p.id !== id);
     data.units = data.units.filter(u => u.property_id !== id);
-    data.transactions = data.transactions.filter(t => t.property_id !== id);
+    data.sejours = data.sejours.filter(s => !unitIds.has(s.unit_id));
+    data.transactions = data.transactions.filter(t => t.property_id !== id && !sejourIds.has(t.sejour_id));
+    data.travaux = data.travaux.filter(t => t.property_id !== id);
+    data.compteurs = (data.compteurs || []).filter(c => c.property_id !== id && !unitIds.has(c.unit_id));
+    data.notes = (data.notes || []).filter(n => n.property_id !== id);
+    data.declarations = (data.declarations || []).filter(d => !sejourIds.has(d.sejour_id));
     save(data);
     res.json({ success: true });
 });

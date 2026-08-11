@@ -113,7 +113,7 @@ router.post('/:token/accept', (req, res) => {
     if (new Date(inv.expires_at) < new Date()) return res.status(410).json({ error: 'Cette invitation a expiré' });
 
     // Vérifier login unique
-    if (data.users.find(u => u.login === login)) return res.status(400).json({ error: 'Ce login est déjà utilisé' });
+    if (data.users.find(u => u.login.toLowerCase() === login.toLowerCase())) return res.status(400).json({ error: 'Ce login est déjà utilisé' });
 
     const user = {
         id: nextId(data, 'users'),

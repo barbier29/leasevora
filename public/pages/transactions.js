@@ -132,7 +132,7 @@ async function renderTransactionsPage(container) {
   async function showForm(txn = null, props = [], cats = [], units = [], sejours = []) {
     const isEdit = !!txn;
     const today = new Date().toISOString().slice(0, 10);
-    const initUnits = txn ? await api(`/units?property_id=${txn.property_id}`) : [];
+    const initUnits = (txn && txn.property_id != null) ? await api(`/units?property_id=${txn.property_id}`) : [];
 
     openModal(`
       <div class="modal-title">${isEdit ? 'Modifier la transaction' : 'Nouvelle transaction'}</div>

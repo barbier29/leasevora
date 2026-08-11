@@ -77,22 +77,39 @@ router.post('/', MGR, (req, res) => {
     // GÉNÉRALE de l'entreprise (salaire du gérant, carburant, frais de bureau…).
     // Elle apparaît dans la trésorerie globale et la section « Général » de la Caisse.
 
+    // Catégorie par défaut si absente (flux paiement séjour, API…) : le
+    // formulaire d'édition l'exige, une transaction sans catégorie devient
+    // non modifiable et s'affiche « ? » dans les relevés.
+    const defaultCat = () => {
+        const byName = n => data.categories.find(c => c.name === n);
+        if (kind === 'IN' && sejour_id) return byName('Loyer mensuel') || data.categories.find(c => c.kind === 'IN');
+        if (kind === 'IN') return byName('Autres revenus') || data.categories.find(c => c.kind === 'IN');
+        return byName('Autres dépenses') || data.categories.find(c => c.kind === 'OUT');
+    };
+
     const txn = {
         id: nextId(data, 'transactions'),
         date,
         description: description || null,
         kind,
         amount: parsedAmount,
-        category_id: category_id ? Number(category_id) : null,
+        category_id: category_id ? Number(category_id) : (defaultCat()?.id ?? null),
         property_id: resolvedPropertyId,
         unit_id: resolvedUnitId,
         sejour_id: sejour_id ? Number(sejour_id) : null,
         // Compte par défaut : la première caisse ACTIVE de l'entreprise — jamais
         // l'id 1 en dur (chaque entreprise a ses propres ids de comptes).
+        // Un compte_id fourni mais INEXISTANT dans l'org est corrigé pareil :
+        // sinon la transaction disparaît de tous les soldes de comptes (vieux
+        // « compte_id: 1 » codés en dur côté front).
         compte_id: (() => {
-            if (compte_id) return Number(compte_id);
-            const c = (data.comptes || []).find(c => c.type === 'CAISSE' && c.actif) || (data.comptes || [])[0];
-            return c ? c.id : 1;
+            const fallback = () => {
+                const c = (data.comptes || []).find(c => c.type === 'CAISSE' && c.actif) || (data.comptes || [])[0];
+                return c ? c.id : 1;
+            };
+            if (!compte_id) return fallback();
+            const wanted = Number(compte_id);
+            return (data.comptes || []).some(c => c.id === wanted) ? wanted : fallback();
         })(),
         source: (() => {
             if (source) return source;

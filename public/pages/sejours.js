@@ -6,7 +6,7 @@ async function renderSejoursPage(container) {
     ANNULE: { label: 'Annulé', cls: 'badge-out' },
     LONG_TERME: { label: 'Long terme', cls: 'badge-longterme' },
   };
-  const TARIFS = { JOURNALIER: 'Journalier', MENSUEL: 'Mensuel', FORFAIT: 'Forfait période' };
+  const TARIFS = { JOURNALIER: 'Journalier', MENSUEL: 'Mensuel', HEBDOMADAIRE: 'Hebdomadaire', FORFAIT: 'Forfait période' };
   const PAIEMENT_STATUTS = {
     EN_ATTENTE: { label: 'Impayé', cls: 'badge-out' },
     PARTIEL:    { label: 'Partiel', cls: 'badge-building' },
@@ -628,6 +628,7 @@ async function renderSejoursPage(container) {
             <select class="form-control" id="f-tarif">
               <option value="MENSUEL" ${(!sej || sej?.type_tarif === 'MENSUEL') ? 'selected' : ''}>Mensuel</option>
               <option value="JOURNALIER" ${sej?.type_tarif === 'JOURNALIER' ? 'selected' : ''}>Journalier</option>
+              <option value="HEBDOMADAIRE" ${sej?.type_tarif === 'HEBDOMADAIRE' ? 'selected' : ''}>Hebdomadaire</option>
               <option value="FORFAIT" ${sej?.type_tarif === 'FORFAIT' ? 'selected' : ''}>Forfait période</option>
             </select>
           </div>

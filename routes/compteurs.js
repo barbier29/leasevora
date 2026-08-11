@@ -87,7 +87,15 @@ router.put('/:id', requireAuth, (req, res) => {
     const data = scoped(load(), req.orgId);
     const idx = data.compteurs.findIndex(c => c.id === Number(req.params.id));
     if (idx === -1) return res.status(404).json({ error: 'Non trouvé' });
-    data.compteurs[idx] = { ...data.compteurs[idx], unit_id: Number(unit_id), type, date, valeur: Number(valeur), notes: notes || null };
+    const prevC = data.compteurs[idx];
+    data.compteurs[idx] = {
+        ...prevC,
+        unit_id: unit_id !== undefined ? Number(unit_id) : prevC.unit_id,
+        type: type !== undefined ? type : prevC.type,
+        date: date !== undefined ? date : prevC.date,
+        valeur: valeur !== undefined ? Number(valeur) : prevC.valeur,
+        notes: notes !== undefined ? (notes || null) : prevC.notes,
+    };
     save(data);
     res.json(enrich(data.compteurs[idx], data));
 });

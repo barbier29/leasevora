@@ -315,25 +315,33 @@ router.put('/:id', requireAuth, NO_TECH, (req, res) => {
     if (cautMontant > 0 && cautStatut === 'AUCUNE') cautStatut = 'EN_ATTENTE';
     if (cautMontant === 0) cautStatut = 'AUCUNE';
 
+    // PUT « merge-safe » : un champ ABSENT de la requête est PRÉSERVÉ, jamais
+    // écrasé. Sans ça, deux catastrophes vécues : (a) un PUT partiel détruisait
+    // la fiche (unit_id NaN, locataire disparu) ; (b) éditer depuis le
+    // Calendrier — qui n'envoie ni long_terme ni jour_paiement — détruisait
+    // silencieusement l'échéancier d'un bail long terme.
+    const prev = data.sejours[idx];
     data.sejours[idx] = {
-        ...data.sejours[idx],
-        unit_id: Number(unit_id),
-        locataire,
-        locataire_id: locataire_id ? Number(locataire_id) : null,
-        date_debut,
-        date_fin: date_fin || null,
-        heure_entree: heure_entree || null,
-        heure_sortie: heure_sortie || null,
-        type_tarif,
+        ...prev,
+        unit_id: unit_id !== undefined ? Number(unit_id) : prev.unit_id,
+        locataire: locataire !== undefined ? locataire : prev.locataire,
+        locataire_id: locataire_id !== undefined ? (locataire_id ? Number(locataire_id) : null) : prev.locataire_id,
+        date_debut: date_debut !== undefined ? date_debut : prev.date_debut,
+        date_fin: date_fin !== undefined ? (date_fin || null) : prev.date_fin,
+        heure_entree: heure_entree !== undefined ? (heure_entree || null) : prev.heure_entree,
+        heure_sortie: heure_sortie !== undefined ? (heure_sortie || null) : prev.heure_sortie,
+        type_tarif: type_tarif !== undefined ? type_tarif : prev.type_tarif,
         montant: parsedMontant,
-        statut: statut || 'A_VENIR',
-        notes: notes || null,
+        statut: statut !== undefined ? (statut || 'A_VENIR') : prev.statut,
+        notes: notes !== undefined ? (notes || null) : prev.notes,
         caution_montant: cautMontant,
         caution_statut: cautStatut,
-        caution_date: cautMontant > 0 ? (caution_date || data.sejours[idx].caution_date || date_debut) : null,
+        caution_date: cautMontant > 0 ? (caution_date || prev.caution_date || date_debut || prev.date_debut) : null,
     };
-    data.sejours[idx].long_terme = req.body.long_terme || false;
-    data.sejours[idx].jour_paiement = req.body.jour_paiement ? Number(req.body.jour_paiement) : null;
+    if (req.body.long_terme !== undefined) data.sejours[idx].long_terme = !!req.body.long_terme;
+    if (req.body.jour_paiement !== undefined) data.sejours[idx].jour_paiement = req.body.jour_paiement ? Number(req.body.jour_paiement) : null;
+    // Cohérence statut/long terme : un statut LONG_TERME implique long_terme
+    if (data.sejours[idx].statut === 'LONG_TERME') data.sejours[idx].long_terme = true;
     save(data);
     res.json(enrich(data.sejours[idx], data));
 });
@@ -576,7 +584,7 @@ router.post('/:id/renouveler', requireAuth, NO_TECH, (req, res) => {
         montant: s.montant,
         type_tarif: s.type_tarif,
         date_debut: s.date_fin,
-        caution: s.caution,
+        caution: s.caution_montant || 0,
     });
 });
 

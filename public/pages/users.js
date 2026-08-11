@@ -185,7 +185,7 @@ async function renderUsersPage(container) {
 
     function showForm(user = null) {
         const isEdit = !!user;
-        const currentRole = user?.role || 'EMPLOYE';
+        const currentRole = user?.role || 'GESTIONNAIRE';
         const isProprietaire = currentRole === 'PROPRIETAIRE';
 
 

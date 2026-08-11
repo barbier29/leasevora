@@ -295,6 +295,20 @@ function load() {
                 if (!('reference_paiement' in t)) t.reference_paiement = null;
             });
 
+            // Migration catégorie manquante : les paiements créés via le flux
+            // séjour n'envoyaient pas de category_id → transaction « ? » non
+            // modifiable (le formulaire d'édition exige une catégorie).
+            // Résolution déterministe par nom, dans les catégories de l'org.
+            const catByName = n => org.categories.find(c => c.name === n);
+            org.transactions.forEach(t => {
+                if (t.category_id == null) {
+                    const cat = (t.kind === 'IN' && t.sejour_id) ? (catByName('Loyer mensuel') || org.categories.find(c => c.kind === 'IN'))
+                        : t.kind === 'IN' ? (catByName('Autres revenus') || org.categories.find(c => c.kind === 'IN'))
+                        : (catByName('Autres dépenses') || org.categories.find(c => c.kind === 'OUT'));
+                    if (cat) t.category_id = cat.id;
+                }
+            });
+
             // Migration spécifications unités
             org.units.forEach(u => {
                 if (!('type'           in u)) u.type           = 'APPARTEMENT';

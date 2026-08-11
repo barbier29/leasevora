@@ -90,8 +90,19 @@ router.put('/:id', MGR, (req, res) => {
 router.delete('/:id', MGR, (req, res) => {
     const data = scoped(load(), req.orgId);
     const id = Number(req.params.id);
+    // Cascade : les séjours de l'appartement partent avec lui (un séjour sans
+    // appartement est irréparable et pollue toutes les listes). Les
+    // transactions comptables restent, dé-référencées proprement.
+    const sejourIds = new Set(data.sejours.filter(s => s.unit_id === id).map(s => s.id));
     data.units = data.units.filter(u => u.id !== id);
-    data.transactions = data.transactions.map(t => t.unit_id === id ? { ...t, unit_id: null } : t);
+    data.sejours = data.sejours.filter(s => s.unit_id !== id);
+    data.transactions = data.transactions.map(t => ({
+        ...t,
+        unit_id: t.unit_id === id ? null : t.unit_id,
+        sejour_id: sejourIds.has(t.sejour_id) ? null : t.sejour_id,
+    }));
+    data.compteurs = (data.compteurs || []).filter(c => c.unit_id !== id);
+    data.declarations = (data.declarations || []).filter(d => !sejourIds.has(d.sejour_id));
     save(data);
     res.json({ success: true });
 });

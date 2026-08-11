@@ -26,7 +26,7 @@ router.get('/income-statement', MGR, (req, res) => {
 
     const enriched = txns.map(t => {
         const cat  = data.categories.find(c => c.id === t.category_id) || {};
-        const prop = data.properties.find(p => p.id === t.property_id) || {};
+        const prop = t.property_id == null ? { name: '🏢 Général' } : (data.properties.find(p => p.id === t.property_id) || {});
         const uObj = t.unit_id ? data.units.find(u => u.id === t.unit_id) : null;
         return {
             id: t.id, date: t.date, description: t.description || null,
@@ -123,16 +123,18 @@ router.get('/property-report', MGR, (req, res) => {
             const uExp  = uTxns.filter(t => t.kind === 'OUT').reduce((s, t) => s + t.amount, 0);
 
             // Séjours de l'unité sur la période
+            // Les séjours portent date_debut/date_fin (date_fin null = en cours,
+            // considéré comme occupant jusqu'à la fin de la période analysée)
             const uSejours = data.sejours.filter(s => {
                 if (s.unit_id !== u.id) return false;
-                const se = s.date_entree, ss = s.date_sortie;
-                return se && ss && se <= to && ss >= from;
+                const se = s.date_debut, ss = s.date_fin || to;
+                return se && se <= to && ss >= from;
             });
 
             // Jours occupés (intersection avec la période)
             const jOccupes = uSejours.reduce((tot, s) => {
-                const deb = new Date(Math.max(new Date(s.date_entree), new Date(from)));
-                const fin = new Date(Math.min(new Date(s.date_sortie), new Date(to)));
+                const deb = new Date(Math.max(new Date(s.date_debut), new Date(from)));
+                const fin = new Date(Math.min(new Date(s.date_fin || to), new Date(to)));
                 return tot + Math.max(0, Math.round((fin - deb) / 86400000));
             }, 0);
 
@@ -174,8 +176,8 @@ router.get('/property-report', MGR, (req, res) => {
         const propSejours = data.sejours.filter(s => {
             const u = data.units.find(u => u.id === s.unit_id);
             if (!u || u.property_id !== prop.id) return false;
-            return s.date_entree && s.date_sortie &&
-                   s.date_entree <= to && s.date_sortie >= from;
+            const se = s.date_debut, ss = s.date_fin || to;
+            return se && se <= to && ss >= from;
         });
 
         // Taux d'occupation global (jours occupés / (jours * nb_unités))

@@ -89,9 +89,12 @@ app.use('/api', (req, res, next) => {
 const demoData = require('./demo-data');
 app.use('/api', (req, res, next) => {
     if (req.user?.login === 'demo' && req.method === 'GET') {
-        // Extraire le nom de la route (ex: /properties -> "properties", /finance/income-statement -> "finance")
-        const route = req.path.replace(/^\//, '').split('/')[0];
-        if (demoData[route]) {
+        // Interception UNIQUEMENT sur la ressource racine (/sejours), jamais
+        // sur les sous-chemins (/sejours/cautions, /:id/solde…) : les données
+        // de démo n'ont pas leur forme → la page Séjours du démo plantait.
+        const segs = req.path.replace(/^\//, '').split('/').filter(Boolean);
+        const route = segs[0];
+        if (segs.length === 1 && demoData[route]) {
             const handler = demoData[route];
             // Les handlers peuvent être des fonctions (dynamiques) ou des données statiques
             const result = typeof handler === 'function' ? handler(req.query?.month) : handler;

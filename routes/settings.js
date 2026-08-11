@@ -3,6 +3,7 @@ const router = express.Router();
 const { load, save, scoped } = require('../store');
 const { requireRole } = require('../middleware/auth');
 
+const ALLOWED_KEYS = ['currency', 'language', 'email_enabled', 'email_to', 'smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass'];
 const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'CAD', 'AED', 'XOF', 'XAF', 'MAD', 'TND', 'DZD', 'NGN', 'GHS', 'KES', 'ZAR', 'GNF', 'JPY', 'BRL', 'MXN', 'XPF'];
 const LANGUAGES  = ['fr', 'en'];
 
@@ -20,7 +21,10 @@ router.put('/', requireRole('PROPRIETAIRE'), (req, res) => {
     if (language && !LANGUAGES.includes(language))
         return res.status(400).json({ error: 'Langue invalide. Valeurs acceptées : fr, en' });
     const data = scoped(load(), req.orgId);
-    data.settings = { ...data.settings, ...req.body };
+    // Liste blanche : ne jamais stocker de clés arbitraires
+    const clean = {};
+    for (const k of ALLOWED_KEYS) if (k in req.body) clean[k] = req.body[k];
+    data.settings = { ...data.settings, ...clean };
     save(data);
     res.json(data.settings);
 });

@@ -292,8 +292,10 @@ async function renderCalendrierPage(container) {
           <div class="form-group">
             <label class="form-label">Tarif *</label>
             <select class="form-control" id="cs-tarif">
-              <option value="MENSUEL" ${sej?.type_tarif !== 'JOURNALIER' ? 'selected' : ''}>Mensuel</option>
+              <option value="MENSUEL" ${(!sej || sej.type_tarif === 'MENSUEL') ? 'selected' : ''}>Mensuel</option>
               <option value="JOURNALIER" ${sej?.type_tarif === 'JOURNALIER' ? 'selected' : ''}>Journalier</option>
+              <option value="HEBDOMADAIRE" ${sej?.type_tarif === 'HEBDOMADAIRE' ? 'selected' : ''}>Hebdomadaire</option>
+              <option value="FORFAIT" ${sej?.type_tarif === 'FORFAIT' ? 'selected' : ''}>Forfait période</option>
             </select>
           </div>
           <div class="form-group">
@@ -307,6 +309,7 @@ async function renderCalendrierPage(container) {
             <select class="form-control" id="cs-statut">
               <option value="A_VENIR"  ${(!sej || sej.statut === 'A_VENIR') ? 'selected' : ''}>À venir</option>
               <option value="EN_COURS" ${sej?.statut === 'EN_COURS' ? 'selected' : ''}>En cours</option>
+              <option value="LONG_TERME" ${sej?.statut === 'LONG_TERME' ? 'selected' : ''}>Long terme</option>
               <option value="TERMINE"  ${sej?.statut === 'TERMINE' ? 'selected' : ''}>Terminé</option>
               <option value="ANNULE"   ${sej?.statut === 'ANNULE' ? 'selected' : ''}>Annulé</option>
             </select>

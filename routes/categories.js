@@ -31,8 +31,14 @@ router.put('/:id', OWNER, (req, res) => {
     res.json(data.categories[idx]);
 });
 
+// La suppression d'une catégorie encore utilisée casserait l'affichage («?»)
+// et les regroupements du compte de résultat.
 router.delete('/:id', OWNER, (req, res) => {
     const data = scoped(load(), req.orgId);
+    const catId = Number(req.params.id);
+    const nbUsages = (data.transactions || []).filter(t => t.category_id === catId).length;
+    if (nbUsages > 0)
+        return res.status(400).json({ error: `Impossible : cette catégorie est utilisée par ${nbUsages} transaction(s). Réaffectez-les d'abord.` });
     data.categories = data.categories.filter(c => c.id !== Number(req.params.id));
     save(data);
     res.json({ success: true });
