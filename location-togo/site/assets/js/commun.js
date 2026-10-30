@@ -123,7 +123,7 @@
   }
 
   /* ---------- Visuel « photo à venir » ---------- */
-  var TEINTES = [["#C8A27A", "#8C5A3C"], ["#9DB3A0", "#3F6450"], ["#D9B88F", "#B0643B"], ["#B8A99A", "#5E4B3C"], ["#A9B8B5", "#46605B"]];
+  var TEINTES = [["#B7AFA4", "#8E857A"], ["#A39B90", "#6F675D"], ["#C4BCB1", "#9A9186"], ["#8F887F", "#5C564F"], ["#ADA69C", "#7D766C"]];
   function visuel(bien, index, legende, attrs) {
     var photo = bien.photos && bien.photos[index];
     if (photo) {
