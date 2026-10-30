@@ -3,7 +3,8 @@
   var S = window.SITE, u = window.U;
   u.initPage();
 
-  var q = new URLSearchParams(location.search);
+  // PARAMS_BIEN permet de passer les paramètres quand l'adresse ne peut pas les porter (prévisualisation).
+  var q = new URLSearchParams(window.PARAMS_BIEN || location.search);
   var bien = window.BIENS.filter(function (b) { return b.id === q.get("id"); })[0];
   if (!bien) {
     document.getElementById("contenu").innerHTML = '<div class="page-texte"><h1>Logement introuvable</h1><p>Ce lien ne correspond à aucun de nos logements.</p><a class="btn btn-principal" href="./#logements">Voir tous les logements</a></div>';
@@ -159,6 +160,13 @@
   zone.addEventListener("change", function (e) { if (e.target.id === "voy") etat.voyageurs = +e.target.value; });
   zone.addEventListener("submit", function (e) { e.preventDefault(); envoyerLongue(); });
 
+  // Un vrai lien cliqué passe mieux que window.open (bloqueurs de fenêtres, navigateurs intégrés).
+  function ouvrirLien(url) {
+    var a = document.createElement("a");
+    a.href = url; a.target = "_blank"; a.rel = "noopener";
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
   function envoyerCourte() {
     if (!etat.debut || !etat.fin) {
       etat.erreur = etat.debut ? "Choisissez votre date de départ." : "";
@@ -174,7 +182,7 @@
       "Voyageurs : " + etat.voyageurs + "\n" +
       "Total affiché sur le site : " + u.fcfa(d.total) + " (" + u.euros(d.total) + ")\n" +
       "Est-ce bien disponible ?";
-    window.open(u.lienWhatsApp(texte), "_blank", "noopener");
+    ouvrirLien(u.lienWhatsApp(texte));
   }
 
   function envoyerLongue() {
@@ -189,7 +197,7 @@
       "Durée envisagée : " + document.getElementById("l-duree").value + "\n" +
       "Visite : " + document.getElementById("l-visite").value + "\n" +
       "Quand pourrions-nous organiser la visite ?";
-    window.open(u.lienWhatsApp(texte), "_blank", "noopener");
+    ouvrirLien(u.lienWhatsApp(texte));
   }
 
   /* ---------- Barre de réservation (téléphone) ---------- */
