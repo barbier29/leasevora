@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Logement à Adidogomé, Lomé | Résidence Adidogomé</title>
+  <meta name="description" content="Logement meublé à Adidogomé, Lomé : photos, équipements, disponibilités et prix en FCFA et en euros. Réservation sur WhatsApp.">
+  <meta name="theme-color" content="#A94B25">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="page-bien">
+
+<header class="entete">
+  <div class="conteneur">
+    <a class="logo" href="./">
+      <span class="logo-marque" aria-hidden="true">A</span>
+      <span class="logo-texte"><span data-site-nom>Résidence Adidogomé</span><small>Lomé · Togo</small></span>
+    </a>
+    <nav class="nav" id="nav" aria-label="Navigation principale">
+      <a href="./#logements">Logements</a>
+      <a href="./#longue-duree">À l'année</a>
+      <a href="./#quartier">Le quartier</a>
+      <a href="./#faq">Questions</a>
+    </nav>
+    <a class="btn btn-wa" data-wa data-ic="message">WhatsApp</a>
+    <button class="burger" type="button" aria-label="Ouvrir le menu" aria-controls="nav" aria-expanded="false"></button>
+  </div>
+</header>
+
+<main class="conteneur" id="contenu">
+  <p class="fil"><a href="./">Accueil</a> › <a href="./#logements">Logements</a> › <span id="fil-nom">Logement</span></p>
+  <h1 class="titre-bien" id="nom">Logement</h1>
+  <div class="sous-titre" id="sous-titre"></div>
+  <div class="galerie" id="galerie"></div>
+
+  <div class="mise-en-page">
+    <div>
+      <section class="bloc">
+        <p class="intro" id="resume" style="font-size:1.15rem;color:var(--encre)"></p>
+        <div class="chiffres" id="chiffres"></div>
+      </section>
+
+      <section class="bloc">
+        <h2>Le logement</h2>
+        <div id="description"></div>
+      </section>
+
+      <section class="bloc">
+        <h2>Équipements</h2>
+        <ul class="equip" id="equipements"></ul>
+      </section>
+
+      <section class="bloc" id="bloc-tarifs">
+        <h2>Tarifs</h2>
+        <table class="tableau-tarifs" id="tarifs"></table>
+        <p class="note" style="margin-top:10px">Prix en FCFA. L'équivalent en euros est indicatif (1 € = 655,957 FCFA, parité fixe).</p>
+      </section>
+
+      <section class="bloc" id="bloc-dispo">
+        <h2>Disponibilités</h2>
+        <p>Les jours barrés sont déjà réservés. Choisissez une date d'arrivée puis une date de départ.</p>
+        <div class="cal" id="cal-page"></div>
+      </section>
+
+      <section class="bloc">
+        <h2>Bon à savoir</h2>
+        <ul class="regles" id="regles"></ul>
+      </section>
+
+      <section class="bloc" style="border-bottom:0">
+        <h2>L'emplacement</h2>
+        <p>Le logement se trouve à Adidogomé, quartier résidentiel de l'ouest de Lomé. L'adresse exacte et l'itinéraire vous sont envoyés à la confirmation.</p>
+        <a class="lien" href="./#quartier">Découvrir le quartier</a>
+      </section>
+    </div>
+
+    <aside id="resa" aria-label="Réserver ce logement">
+      <div class="resa" id="carte-resa"></div>
+    </aside>
+  </div>
+</main>
+
+<div class="barre-mobile" id="barre-mobile"></div>
+
+<dialog class="modale" id="modale-dates" aria-labelledby="modale-titre">
+  <div class="modale-tete">
+    <h2 id="modale-titre">Vos dates</h2>
+    <button class="fermer" type="button" data-fermer aria-label="Fermer"></button>
+  </div>
+  <div class="modale-corps"><div class="cal" id="cal-modale"></div></div>
+  <div class="modale-pied">
+    <button class="lien" type="button" id="effacer-dates">Effacer</button>
+    <button class="btn btn-principal" type="button" data-fermer>Valider</button>
+  </div>
+</dialog>
+
+<footer class="pied">
+  <div class="conteneur">
+    <div class="pied-bas" style="border:0;margin:0;padding:0">
+      <span>© <span data-annee></span> <span data-site-nom>Résidence Adidogomé</span> · Adidogomé, Lomé</span>
+      <span><a href="conditions.html">Conditions de location</a> · <a href="mentions-legales.html">Mentions légales</a></span>
+    </div>
+  </div>
+</footer>
+
+<a class="wa-flottant" id="wa-flottant" data-wa aria-label="Nous écrire sur WhatsApp" data-ic="message"></a>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/biens.js"></script>
+<script src="assets/js/commun.js"></script>
+<script src="assets/js/appartement.js"></script>
+</body>
+</html>

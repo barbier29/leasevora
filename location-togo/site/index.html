@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Appartements meublés à Adidogomé, Lomé | Résidence Adidogomé</title>
+  <meta name="description" content="Studios et appartements meublés à Adidogomé, Lomé (Togo). Location à la nuit, à la semaine, au mois ou à l'année. Prix en FCFA et en euros, réservation simple sur WhatsApp.">
+  <meta name="theme-color" content="#A94B25">
+  <link rel="canonical" href="https://www.exemple.tg/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:title" content="Appartements meublés à Adidogomé, Lomé">
+  <meta property="og:description" content="Courte durée meublée et location à l'année. Réservation simple sur WhatsApp, prix en FCFA et en euros.">
+  <meta property="og:image" content="assets/img/partage.jpg">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<header class="entete">
+  <div class="conteneur">
+    <a class="logo" href="./">
+      <span class="logo-marque" aria-hidden="true">A</span>
+      <span class="logo-texte"><span data-site-nom>Résidence Adidogomé</span><small>Lomé · Togo</small></span>
+    </a>
+    <nav class="nav" id="nav" aria-label="Navigation principale">
+      <a href="#logements">Logements</a>
+      <a href="#longue-duree">À l'année</a>
+      <a href="#quartier">Le quartier</a>
+      <a href="#faq">Questions</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <a class="btn btn-wa" data-wa data-ic="message">WhatsApp</a>
+    <button class="burger" type="button" aria-label="Ouvrir le menu" aria-controls="nav" aria-expanded="false"></button>
+  </div>
+</header>
+
+<main>
+  <section class="heros">
+    <div class="heros-fond" aria-hidden="true"></div>
+    <div class="conteneur">
+      <span class="surtitre">Adidogomé, Lomé</span>
+      <h1>Chez vous à Lomé, <em>pour une nuit ou pour l'année</em></h1>
+      <p class="intro">Studios et appartements meublés dans un quartier résidentiel calme. Vous voyez les disponibilités, le prix exact en FCFA et en euros, et vous réservez en deux minutes sur WhatsApp.</p>
+
+      <form class="recherche" id="recherche" role="search" aria-label="Rechercher un logement">
+        <div class="onglets" role="tablist">
+          <button type="button" role="tab" aria-selected="true" data-mode="courte">Séjour meublé</button>
+          <button type="button" role="tab" aria-selected="false" data-mode="longue">Location à l'année</button>
+        </div>
+        <div class="champs" data-champs="courte">
+          <div class="champ"><label for="r-arrivee">Arrivée</label><input id="r-arrivee" type="date" name="arrivee"></div>
+          <div class="champ"><label for="r-depart">Départ</label><input id="r-depart" type="date" name="depart"></div>
+          <div class="champ champ-plein"><label for="r-voy">Voyageurs</label>
+            <select id="r-voy" name="voyageurs"><option value="1">1 voyageur</option><option value="2" selected>2 voyageurs</option><option value="3">3 voyageurs</option><option value="4">4 voyageurs</option><option value="5">5 voyageurs</option><option value="6">6 et plus</option></select>
+          </div>
+          <button class="btn btn-principal" type="submit">Voir les disponibilités</button>
+        </div>
+        <div class="champs longue" data-champs="longue" hidden>
+          <div class="champ"><label for="r-emm">Emménagement</label><input id="r-emm" type="date" name="emmenagement"></div>
+          <div class="champ"><label for="r-ch">Chambres</label>
+            <select id="r-ch" name="chambres"><option value="0">Studio ou plus</option><option value="1">1 chambre ou plus</option><option value="2">2 chambres ou plus</option></select>
+          </div>
+          <button class="btn btn-principal" type="submit">Voir les logements</button>
+        </div>
+      </form>
+
+      <ul class="heros-points">
+        <li data-ic="check">Prix affichés, sans surprise</li>
+        <li data-ic="check">Une équipe sur place à Lomé</li>
+        <li data-ic="check">Réponse sur WhatsApp</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="rassure" aria-label="Nos engagements">
+    <div class="conteneur">
+      <ul>
+        <li data-ic="calendar"><div><strong>Disponibilités à jour</strong>Choisissez vos dates en direct</div></li>
+        <li data-ic="globe"><div><strong>FCFA et euros</strong>Pratique pour la diaspora</div></li>
+        <li data-ic="wallet"><div><strong>Acompte simple</strong>Mixx by Yas, Moov Money ou virement</div></li>
+        <li data-ic="key"><div><strong>Accueil sur place</strong>Remise des clés à votre arrivée</div></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section" id="logements">
+    <div class="conteneur">
+      <div class="entete-section">
+        <div>
+          <span class="surtitre">Nos logements</span>
+          <h2 id="titre-liste">Choisissez votre appartement</h2>
+          <p class="intro" id="resume-recherche">Tous nos logements sont à Adidogomé, entretenus par notre équipe et loués directement par le propriétaire.</p>
+        </div>
+        <div class="filtres" role="group" aria-label="Filtrer les logements">
+          <button class="puce" type="button" data-filtre="tous" aria-pressed="true">Tous</button>
+          <button class="puce" type="button" data-filtre="courte" aria-pressed="false">Séjour meublé</button>
+          <button class="puce" type="button" data-filtre="longue" aria-pressed="false">À l'année</button>
+        </div>
+      </div>
+      <div class="grille-biens" id="grille-biens"></div>
+    </div>
+  </section>
+
+  <section class="section fond-carte">
+    <div class="conteneur">
+      <div class="entete-section"><div>
+        <span class="surtitre">Réserver un séjour</span>
+        <h2>Trois étapes, sans compte à créer</h2>
+      </div></div>
+      <ol class="etapes">
+        <li class="etape"><h3>Choisissez vos dates</h3><p>Le calendrier de chaque logement montre ce qui est libre. Le prix total s'affiche tout de suite, ménage compris.</p></li>
+        <li class="etape"><h3>Envoyez la demande</h3><p>Un clic ouvre WhatsApp avec votre demande déjà écrite. Nous vous répondons pour confirmer la disponibilité.</p></li>
+        <li class="etape"><h3>Réglez l'acompte, c'est réservé</h3><p>Un acompte confirme votre séjour. Le solde se règle à l'arrivée, au moment de la remise des clés.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" id="longue-duree">
+    <div class="conteneur">
+      <div class="offres">
+        <div class="offre offre-courte">
+          <span class="surtitre">Séjour meublé</span>
+          <h2>Quelques nuits ou quelques mois</h2>
+          <ul>
+            <li data-ic="check">Logement meublé et équipé, linge fourni</li>
+            <li data-ic="check">Tarifs dégressifs à la semaine et au mois</li>
+            <li data-ic="check">Prix total affiché tout de suite, ménage compris</li>
+            <li data-ic="check">Facture possible pour les entreprises et ONG</li>
+          </ul>
+          <a class="btn btn-principal" href="#logements" data-filtre-lien="courte">Voir les séjours</a>
+        </div>
+        <div class="offre offre-longue">
+          <span class="surtitre">Location à l'année</span>
+          <h2>Un logement pour vous installer</h2>
+          <ul>
+            <li data-ic="check">Bail écrit, loyer et caution annoncés à l'avance</li>
+            <li data-ic="check">Visite sur place ou en vidéo sur WhatsApp</li>
+            <li data-ic="check">Dossier simple : pièce d'identité et justificatif de revenus</li>
+            <li data-ic="check">Un interlocuteur sur place pour l'entretien</li>
+          </ul>
+          <a class="btn btn-clair" href="#logements" data-filtre-lien="longue">Voir les logements à l'année</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section fond-carte">
+    <div class="conteneur">
+      <div class="entete-section"><div>
+        <span class="surtitre">Pour qui</span>
+        <h2>Pensé pour ceux qui viennent à Lomé</h2>
+      </div></div>
+      <div class="publics">
+        <div class="public"><span data-ic="plane"></span><h3>La diaspora</h3><p>Vacances, fêtes de fin d'année, visite à la famille : un vrai chez-soi, réservé depuis l'étranger.</p></div>
+        <div class="public"><span data-ic="briefcase"></span><h3>Missions et affaires</h3><p>Wifi, espace pour travailler et facture au nom de votre structure.</p></div>
+        <div class="public"><span data-ic="users"></span><h3>Les familles</h3><p>Plusieurs chambres et une cuisine complète pour vivre à votre rythme.</p></div>
+        <div class="public"><span data-ic="home"></span><h3>Ceux qui s'installent</h3><p>Commencez en meublé le temps de vous organiser, puis passez au bail à l'année.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="quartier">
+    <div class="conteneur quartier">
+      <div>
+        <span class="surtitre">Le quartier</span>
+        <h2>Adidogomé, côté vie de quartier</h2>
+        <p class="intro">Adidogomé est un quartier résidentiel de l'ouest de Lomé. On y vit au calme, avec les commerces, les marchés et les maquis du quotidien à portée de main.</p>
+        <ul class="reperes" id="reperes"></ul>
+        <p class="note">L'adresse précise vous est communiquée à la confirmation de la réservation.</p>
+      </div>
+      <div class="carte-geo" id="carte-geo">
+        <div class="charger"><div><p>Carte du quartier (OpenStreetMap)</p><button class="btn btn-contour" type="button" id="btn-carte">Afficher la carte</button></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section fond-carte" id="avis">
+    <div class="conteneur">
+      <div class="entete-section"><div>
+        <span class="surtitre">Avis</span>
+        <h2>Ce qu'en disent nos voyageurs</h2>
+      </div></div>
+      <div id="zone-avis"></div>
+    </div>
+  </section>
+
+  <section class="section" id="faq">
+    <div class="conteneur">
+      <div class="entete-section"><div>
+        <span class="surtitre">Questions fréquentes</span>
+        <h2>Avant de réserver</h2>
+      </div></div>
+      <div class="faq">
+        <details><summary>Comment se passe le paiement ?</summary>
+          <p>Pour un séjour meublé, un acompte de <span data-acompte>30</span>&nbsp;% confirme la réservation. Il se règle par mobile money (Mixx by Yas ou Moov Money) ou par virement. Le solde se paie à l'arrivée. Les moyens de paiement exacts vous sont indiqués sur WhatsApp au moment de la confirmation.</p></details>
+        <details><summary>À quelle heure puis-je arriver et partir ?</summary>
+          <p>Arrivée à partir de <span data-heure-arrivee>14h00</span>, départ avant <span data-heure-depart>11h00</span>. Si votre vol arrive tard ou tôt, dites-le-nous dans votre demande : nous nous organisons avec la personne qui vous accueille.</p></details>
+        <details><summary>Y a-t-il des coupures de courant ou d'eau ?</summary>
+          <p>Les équipements de secours (groupe électrogène, forage, citerne) sont indiqués sur la fiche de chaque logement. Ce qui n'y figure pas n'est pas disponible dans ce logement.</p></details>
+        <details><summary>Puis-je réserver pour quelqu'un de ma famille ?</summary>
+          <p>Oui. Beaucoup de nos clients réservent depuis l'étranger pour un parent. Indiquez simplement le nom et le numéro de la personne qui sera sur place.</p></details>
+        <details><summary>Puis-je annuler ?</summary>
+          <p>Les conditions d'annulation sont détaillées dans nos <a class="lien" href="conditions.html">conditions de location</a>. Elles vous sont rappelées avant le paiement de l'acompte.</p></details>
+        <details><summary>Que faut-il pour louer à l'année ?</summary>
+          <p>Une pièce d'identité, un justificatif de revenus ou une attestation d'employeur, et la caution indiquée sur la fiche du logement. Un bail écrit est signé avant l'entrée dans les lieux.</p></details>
+        <details><summary>Pouvez-vous faire une facture pour mon entreprise ou mon ONG ?</summary>
+          <p>Oui, au nom de votre structure. Précisez-le dans votre demande avec la raison sociale à indiquer.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="conteneur" id="contact">
+    <div class="appel">
+      <div>
+        <h2>Une question avant de réserver ?</h2>
+        <p>Écrivez-nous sur WhatsApp, en français ou en anglais. Nous répondons depuis Lomé et depuis la France.</p>
+      </div>
+      <div class="actions">
+        <a class="btn btn-principal" data-wa data-ic="message">Écrire sur WhatsApp</a>
+        <a class="btn btn-contour" data-tel href="#">Appeler</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="pied">
+  <div class="conteneur">
+    <div class="pied-grille">
+      <div>
+        <a class="logo" href="./"><span class="logo-marque" aria-hidden="true">A</span><span class="logo-texte"><span data-site-nom>Résidence Adidogomé</span><small>Lomé · Togo</small></span></a>
+        <p style="margin-top:16px;max-width:360px">Location directe par le propriétaire de studios et appartements à Adidogomé, à la nuit, au mois ou à l'année.</p>
+      </div>
+      <div>
+        <h4>Logements</h4>
+        <ul id="pied-biens"></ul>
+      </div>
+      <div>
+        <h4>Contact</h4>
+        <ul>
+          <li><a data-wa>WhatsApp</a></li>
+          <li><a data-tel href="#">Téléphone</a></li>
+          <li><a data-email href="#">E-mail</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="pied-bas">
+      <span>© <span data-annee></span> <span data-site-nom>Résidence Adidogomé</span></span>
+      <span><a href="conditions.html">Conditions de location</a> · <a href="mentions-legales.html">Mentions légales</a></span>
+    </div>
+  </div>
+</footer>
+
+<a class="wa-flottant" data-wa aria-label="Nous écrire sur WhatsApp" data-ic="message"></a>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/biens.js"></script>
+<script src="assets/js/commun.js"></script>
+<script src="assets/js/accueil.js"></script>
+</body>
+</html>
